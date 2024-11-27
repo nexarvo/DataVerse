@@ -1,3 +1,12 @@
+mod db;
+mod errors;
+mod models;
+mod routes;
+mod services;
+mod utils;
+use crate::db::create_user_table;
+use crate::db::establish_connection;
+use crate::routes::auth::auth_routes;
 use actix_web::{
     middleware,
     web::{self, Data},
@@ -5,7 +14,7 @@ use actix_web::{
 };
 use dotenv::dotenv;
 use log::info;
-use sqlx::{postgres::PgPoolOptions, PgPool};
+use sqlx::PgPool;
 use std::env;
 
 async fn health_check(pool: Data<PgPool>) -> impl Responder {
@@ -30,13 +39,9 @@ async fn main() -> std::io::Result<()> {
         .parse()
         .expect("PORT must be a valid number");
 
-    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let pool = establish_connection().await;
 
-    let pool = PgPoolOptions::new()
-        .max_connections(5)
-        .connect(&database_url)
-        .await
-        .expect("Failed to create database connection pool");
+    create_user_table(&pool).await;
 
     info!("Starting server on port {}", port);
 
@@ -45,6 +50,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(Data::new(pool.clone()))
             .wrap(middleware::Logger::default())
             .route("/health", web::get().to(health_check))
+            .configure(auth_routes)
     })
     .bind(("127.0.0.1", port))?
     .run()
