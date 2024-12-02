@@ -19,3 +19,22 @@ pub async fn create_user_table(pool: &PgPool) {
     "#;
     sqlx::query(query).execute(pool).await.unwrap();
 }
+
+pub async fn create_datasets_table(pool: &PgPool) {
+    let query = r#"
+        CREATE TABLE datasets (
+            id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+            file_name TEXT NOT NULL,
+            file_size BIGINT NOT NULL,
+            file_type TEXT NOT NULL,
+            upload_time TIMESTAMP DEFAULT NOW(),
+            uploaded_by UUID, -- Foreign key to a users table if applicable
+            dataset_url TEXT NOT NULL,
+            row_count INTEGER,
+        );
+    "#;
+    match sqlx::query(query).execute(pool).await {
+        Ok(_) => println!("Table created successfully"),
+        Err(e) => println!("Error creating table: {:?}", e),
+    }
+}
