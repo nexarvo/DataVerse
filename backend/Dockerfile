@@ -14,6 +14,6 @@ RUN apt-get update && apt-get install -y \
     pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder /app/target/release/your-binary-name /usr/local/bin/
+COPY --from=builder /app/target/release/backend /usr/local/bin/
 
 CMD ["backend"]
