@@ -1,7 +1,13 @@
 {
     "functions": {
-      "api/**/*.rs": {
+      "backend/src/**/*.rs": {
         "runtime": "vercel-rust@2.0.0"
       }
-    }
-}
+    },
+    "builds": [
+      {
+        "src": "backend/src/Cargo.toml",
+        "use": "@vercel/rust"
+      }
+    ]
+  }
