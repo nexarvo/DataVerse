@@ -1,15 +1,6 @@
 {
-    "version": 2,
+    "source": "backend",
     "builds": [
-      {
-        "src": "Dockerfile",
-        "use": "@vercel/docker"
-      }
-    ],
-    "routes": [
-      {
-        "src": "/(.*)",
-        "dest": "/backend"
-      }
-    ]
-  }
+    { "src": "backend/src/main.rs", "use": "vercel-rust" }
+  ]
+}
