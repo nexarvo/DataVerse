@@ -5,10 +5,12 @@ mod routes;
 mod services;
 mod utils;
 use crate::db::create_datasets_table;
+use crate::db::create_transformations_table;
 use crate::db::create_user_table;
 use crate::db::establish_connection;
 use crate::routes::auth::auth_routes;
 use crate::routes::file::file_routes;
+use crate::routes::transformation::transformation_routes;
 use actix_web::{
     middleware,
     web::{self, Data},
@@ -45,6 +47,7 @@ async fn main() -> std::io::Result<()> {
 
     create_user_table(&pool).await;
     create_datasets_table(&pool).await;
+    create_transformations_table(&pool).await;
 
     info!("Starting server on port {}", port);
 
@@ -55,6 +58,7 @@ async fn main() -> std::io::Result<()> {
             .route("/health", web::get().to(health_check))
             .configure(auth_routes)
             .configure(file_routes)
+            .configure(transformation_routes)
     })
     .bind(("127.0.0.1", port))?
     .run()

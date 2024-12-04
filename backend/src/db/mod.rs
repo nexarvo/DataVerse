@@ -38,3 +38,21 @@ pub async fn create_datasets_table(pool: &PgPool) {
         Err(e) => println!("Error creating table: {:?}", e),
     }
 }
+
+pub async fn create_transformations_table(pool: &PgPool) {
+    let query = r#"
+        CREATE TABLE transformations (
+            id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+            dataset_id UUID NOT NULL REFERENCES datasets(id) ON DELETE CASCADE,
+            transformation_type TEXT NOT NULL, -- e.g., "filter", "aggregation"
+            parameters JSONB NOT NULL,
+            applied_at TIMESTAMP DEFAULT NOW(),
+            applied_by UUID,
+            result_preview JSONB
+        );
+    "#;
+    match sqlx::query(query).execute(pool).await {
+        Ok(_) => println!("Table created successfully"),
+        Err(e) => println!("Error creating table: {:?}", e),
+    }
+}
