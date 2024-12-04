@@ -9,6 +9,8 @@ use crate::routes::auth::auth_routes;
 use crate::routes::dataset::file_routes;
 use actix_cors::Cors;
 use actix_web::http::header;
+use crate::db::establish_connection_pool;
+use crate::routes::transformation::transformation_routes;
 use actix_web::{
     middleware,
     web::{self, Data},
@@ -20,7 +22,6 @@ use sqlx::PgPool;
 use utils::token_verification_middleware::AuthMiddleware;
 use std::env;
 use std::rc::Rc;
-use crate::db::establish_connection_pool;
 
 async fn health_check(pool: Data<PgPool>) -> impl Responder {
     if sqlx::query("SELECT 1")
@@ -68,6 +69,7 @@ async fn main() -> std::io::Result<()> {
             .route("/health", web::get().to(health_check))
             .configure(auth_routes)
             .configure(file_routes)
+            .configure(transformation_routes)
     })
     .bind(("127.0.0.1", port))?
     .run()
