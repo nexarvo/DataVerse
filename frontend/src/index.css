@@ -1,3 +1,86 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+body {
+  scroll-behavior: smooth;
+}
+
+/* Add to your CSS file (e.g., app.css) */
+
+/* Tagline Slide Up Animation */
+@keyframes slideUp {
+  0% {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.tagline {
+  display: inline-block;
+  animation: slideUp 1s ease-out; /* Smooth slide-up animation */
+  animation-fill-mode: both;
+}
+
+/* Add styles for the background, buttons, etc. */
+.bg-dark {
+  background-color: #1a202c; /* Dark background for sections */
+}
+
+.text-light {
+  color: #f7fafc; /* Light text color */
+}
+
+.text-accent {
+  color: #48bb78; /* Accent color for the tagline */
+}
+
+.bg-light {
+  background-color: #f7fafc; /* Light background for sections */
+}
+
+.bg-accent {
+  background-color: #48bb78; /* Accent color for CTA sections */
+}
+
+.text-dark {
+  color: #1a202c; /* Dark text color */
+}
+
+/* Button Hover Effect */
+button:hover {
+  background-color: #2d3748; /* Darker shade on hover */
+}
+
+.bg-retro {
+  background: url('frontend/src/assets/grains.jpg.avif'), #0b192c;
+  background-size: cover;
+  background-position: center;
+  background-repeat: repeat;
+  position: relative;
+}
+
+/* Custom Grid Fade Background */
+.bg-grid-fade-pattern {
+  background-image: repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.1) 0px,
+      rgba(255, 255, 255, 0.1) 1px,
+      transparent 1px,
+      transparent 100px
+    ),
+    repeating-linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.1) 0px,
+      rgba(255, 255, 255, 0.1) 1px,
+      transparent 1px,
+      transparent 100px
+    ),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0));
+  background-size: 500px 500px;
+  background-position: center;
+}
