@@ -6,7 +6,7 @@ export default {
         sans: ['Inter', 'sans-serif'],
       },
       colors: {
-        dark: '#111E1DFF',
+        dark: '#0b192c',
         light: '#f5f5f5',
         accent: '#007aff',
       },

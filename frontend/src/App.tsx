@@ -4,6 +4,7 @@ import './index.css';
 import LandingPage from './pages/LandingPage';
 import AuthPage from './pages/AuthPage';
 import Dashboard from './pages/Dashboard';
+import TransformationsPage from './pages/TransformationPage';
 
 const App: React.FC = () => {
   return (
@@ -12,6 +13,7 @@ const App: React.FC = () => {
         <Route path='/' element={<LandingPage />} />
         <Route path='/signup' element={<AuthPage />} />
         <Route path='/dashboard' element={<Dashboard />} />
+        <Route path='/transformations' element={<TransformationsPage />} />
       </Routes>
     </BrowserRouter>
   );
