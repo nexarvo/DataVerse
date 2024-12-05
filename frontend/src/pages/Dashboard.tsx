@@ -1,15 +1,19 @@
-// src/pages/Dashboard.tsx
 import React from 'react';
+import LeftNavBar from '../components/LeftNavBar';
+import TopBar from '../components/TopBar';
 
-const Dashboard: React.FC = () => {
+const Dashboard: React.FC = ({ children }) => {
   return (
-    <div className='flex items-center justify-center min-h-screen bg-gray-100'>
-      <h1 className='text-3xl font-bold text-indigo-600'>
-        Welcome to Your Dashboard!
-      </h1>
-      <p className='mt-4 text-lg text-gray-600'>
-        You are logged in and ready to explore the app.
-      </p>
+    <div className='flex h-screen'>
+      {/* Left Navigation Bar */}
+      <LeftNavBar />
+      {/* Main Content Area */}
+      <div className='flex-1 flex flex-col'>
+        {/* Top Bar */}
+        <TopBar />
+        {/* Dashboard Content */}
+        <div className='flex-1 p-6 bg-gray-100'>{children}</div>
+      </div>
     </div>
   );
 };
