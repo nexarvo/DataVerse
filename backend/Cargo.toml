@@ -18,14 +18,16 @@ sqlx = { version = "0.7", features = ["runtime-tokio-native-tls", "uuid", "postg
 uuid = { version = "1.3", features = ["v4", "serde"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_derive = "1.0"
+serde_json = "1.0.85"
+chrono = { version = "0.4", features = ["serde"] }
 diesel = { version = "2.0", features = ["postgres", "serde_json"] }
 thiserror = "1.0"  # Add this line to include `thiserror`
 bcrypt = "0.12"
 jsonwebtoken = "9.3.0"
-chrono = "0.4"
 reqwest = { version = "0.11", features = ["json", "stream", "multipart"] }
-supabase = "0.0.0"
+supabase_rs = { version = "0.3.7", features = ["storage"] }
 tokio = { version = "1", features = ["full"] }
 tokio-macros = "1.0"
 futures-util = "0.3"
 mime_guess = "2.0"
+polars = { version = "0.25", features = ["json", "serde"] } 
