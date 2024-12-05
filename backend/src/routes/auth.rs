@@ -1,6 +1,7 @@
 use crate::models::user::User;
 use crate::services::auth_service::{google_sign_in, sign_in, sign_up};
 use crate::utils::response::{ErrorResponse, SuccessResponse};
+use actix_web::cookie::Cookie;
 use actix_web::{web, HttpResponse, Responder};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
@@ -19,11 +20,18 @@ pub struct GoogleSignInRequest {
 // Sign up route
 async fn sign_up_route(pool: web::Data<PgPool>, user: web::Json<User>) -> impl Responder {
     match sign_up(&pool, user.into_inner()).await {
-        Ok(token) => HttpResponse::Created().json(SuccessResponse {
+        Ok(token) => {
+            // Set token in HttpOnly cookie for security
+            let cookie = Cookie::build("auth_token", token)
+            .path("/")
+            .http_only(true)
+            .secure(true)  // Only for HTTPS connections
+            .same_site(actix_web::cookie::SameSite::Lax)  // CSRF protection
+            .finish();
+            HttpResponse::Created().cookie(cookie).json(SuccessResponse {
             status_code: 201,
-            message: "User created successfully".to_string(),
-            token: Some(token),
-        }),
+            message: "User created successfully".to_string()
+        })},
         Err(err) => {
             let error_response = ErrorResponse {
                 error_code: 500,
@@ -37,7 +45,17 @@ async fn sign_up_route(pool: web::Data<PgPool>, user: web::Json<User>) -> impl R
 // Sign in route
 async fn sign_in_route(pool: web::Data<PgPool>, creds: web::Json<SignInRequest>) -> impl Responder {
     match sign_in(&pool, creds.email.clone(), creds.password.clone()).await {
-        Ok(token) => HttpResponse::Ok().json(token),
+        Ok(token) => {
+            let cookie = Cookie::build("auth_token", token)
+                .path("/")
+                .http_only(true)  // Ensures that the cookie is not accessible via JavaScript
+                .secure(true)     // Ensures the cookie is only sent over HTTPS
+                .same_site(actix_web::cookie::SameSite::Lax)  // Mitigates CSRF
+                .finish();
+            HttpResponse::Ok()
+                .cookie(cookie)
+                .finish()
+        },
         Err(_) => HttpResponse::Unauthorized().finish(),
     }
 }

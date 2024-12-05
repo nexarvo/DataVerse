@@ -10,5 +10,4 @@ pub struct ErrorResponse {
 pub struct SuccessResponse {
     pub status_code: u16,
     pub message: String,
-    pub token: Option<String>,
 }
