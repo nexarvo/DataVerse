@@ -1,10 +1,20 @@
-import './App.css'
-import './index.css'
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import './App.css';
+import './index.css';
 import LandingPage from './pages/LandingPage';
-
+import AuthPage from './pages/AuthPage';
+import Dashboard from './pages/Dashboard';
 
 const App: React.FC = () => {
-  return <LandingPage />;
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path='/' element={<LandingPage />} />
+        <Route path='/signup' element={<AuthPage />} />
+        <Route path='/dashboard' element={<Dashboard />} />
+      </Routes>
+    </BrowserRouter>
+  );
 };
 
-export default App
+export default App;

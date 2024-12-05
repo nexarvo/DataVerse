@@ -1,6 +1,7 @@
 // components/Navbar.tsx
 import React, { useState } from 'react';
 import BackgroundShapes from './BackgroundShapes';
+import { Link } from 'react-router-dom';
 
 const Navbar = () => {
   const [open, setOpen] = useState(false);
@@ -56,9 +57,9 @@ const Navbar = () => {
           </a>
         </div>
         <div className='hidden lg:flex lg:flex-1 lg:justify-end'>
-          <a href='#' className='text-sm/6 font-semibold text-white-900'>
+          <Link to='/signup' className='text-sm/6 font-semibold text-white-900'>
             Log in <span aria-hidden='true'>&rarr;</span>
-          </a>
+          </Link>
         </div>
       </nav>
 
