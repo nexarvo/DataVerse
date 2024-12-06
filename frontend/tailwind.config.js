@@ -8,7 +8,7 @@ export default {
       colors: {
         dark: '#0b192c',
         light: '#f5f5f5',
-        accent: '#007aff',
+        accent: '#102440FF',
       },
     },
   },
