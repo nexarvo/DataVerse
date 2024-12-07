@@ -11,6 +11,8 @@ export default {
         accent: '#1E293B',
         third: '#334155',
         fourth: '#64748B',
+        'green-glass': 'rgba(72, 187, 120, 0.2)', // Light green transparent
+        'green-glass-hover': 'rgba(72, 187, 120, 0.4)', // Slightly darker green on hover
       },
     },
   },
