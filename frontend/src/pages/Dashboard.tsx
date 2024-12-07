@@ -14,7 +14,7 @@ const Dashboard: React.FC = ({ children }) => {
         {/* Top Bar */}
         <TopBar />
         {/* Dashboard Content */}
-        <div className='flex-1 p-6 bg-accent'>
+        <div className='flex-1 bg-accent'>
           <Outlet />
         </div>
       </div>

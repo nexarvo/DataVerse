@@ -11,7 +11,7 @@ const FavoritesLeftNavBar: React.FC<FavoritesLeftNavBarProps> = ({
   favoriteItems,
   favoritesTitle,
 }) => {
-  const [isDropdownOpen, setDropdownOpen] = useState(false);
+  const [isDropdownOpen, setDropdownOpen] = useState(true);
   const toggleDropdown = () => setDropdownOpen(!isDropdownOpen);
 
   return (

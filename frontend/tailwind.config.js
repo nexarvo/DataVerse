@@ -6,9 +6,11 @@ export default {
         sans: ['Inter', 'sans-serif'],
       },
       colors: {
-        dark: '#0b192c',
+        dark: '#0F172A',
         light: '#f5f5f5',
-        accent: '#102440FF',
+        accent: '#1E293B',
+        third: '#334155',
+        fourth: '#64748B',
       },
     },
   },

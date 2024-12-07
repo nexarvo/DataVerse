@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import DataIcon from '../assets/data-icon.svg';
+import DataIcon from '../assets/data-icon-white.svg';
 import HomeIcon from '../assets/home-icon.svg';
 import ProjectIcon from '../assets/project-icon.svg';
 import ApprovalIcon from '../assets/approved-icon.svg';
@@ -14,7 +14,7 @@ const LeftNavBar: React.FC = () => {
   const navItems = [
     { name: 'Home', path: '/home', imgLink: HomeIcon },
     { name: 'Projects', path: '/projects', imgLink: ProjectIcon },
-    { name: 'Data', path: '/data', imgLink: DataIcon },
+    { name: 'Data', path: 'data', imgLink: DataIcon },
     { name: 'Approved', path: '/approved', imgLink: ApprovalIcon },
   ];
 
