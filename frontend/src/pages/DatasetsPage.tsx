@@ -111,7 +111,7 @@ const DataPage: React.FC = () => {
           selectedTab === 'All' ? 0 : selectedTab === 'Recently Used' ? 1 : 2
         }
         onChange={(index) => {
-          const tabNames = ['All', 'Recently Used', 'Favorites'];
+          const tabNames = ['All', 'Recently Used', 'Favorites', 'Samples'];
           setSelectedTab(tabNames[index]);
         }}
       >
@@ -173,6 +173,26 @@ const DataPage: React.FC = () => {
                   <img src={FavoriteIconWhite} className='h-3 w-3 mr-2' />
                 )}
                 Favorites
+              </div>
+            )}
+          </Tab>
+          <Tab
+            className={({ selected }) =>
+              selected
+                ? 'text-sm text-fourth border-b-2 border-fourth'
+                : 'text-sm text-white'
+            }
+            as='button'
+            onFocus={(e) => e.target.blur()}
+          >
+            {({ selected }) => (
+              <div className='flex items-center'>
+                {selected ? (
+                  <img src={FavoriteIconAccent} className='h-3 w-3 mr-2' />
+                ) : (
+                  <img src={FavoriteIconWhite} className='h-3 w-3 mr-2' />
+                )}
+                Samples
               </div>
             )}
           </Tab>
