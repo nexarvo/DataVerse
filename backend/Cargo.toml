@@ -26,7 +26,7 @@ postgres = "0.19"
 thiserror = "1.0"  # Add this line to include `thiserror`
 bcrypt = "0.12"
 jsonwebtoken = "9.3.0"
-chrono = "0.4"
+chrono = { version = "0.4", features = ["serde"] }
 reqwest = { version = "0.11", features = ["json", "stream", "multipart"] }
 supabase = "0.0.0"
 tokio = { version = "1", features = ["full"] }

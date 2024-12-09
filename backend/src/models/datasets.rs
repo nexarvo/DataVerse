@@ -1,8 +1,9 @@
 use chrono::NaiveDateTime;
 use serde_json::Value;
 use uuid::Uuid;
+use serde::{Serialize, Deserialize};
 
-#[derive(Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Dataset {
     pub id: Option<Uuid>,
     pub file_name: String,

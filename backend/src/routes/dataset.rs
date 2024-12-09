@@ -1,5 +1,4 @@
-use crate::services::dataset_service::upload_to_supabase;
-use crate::services::auth_service::extract_user_id_from_token;
+use crate::{models::datasets::Dataset, services::dataset_service::upload_to_supabase};
 use crate::repositories::dataset_repository;
 use crate::utils::jwt::get_user_id_from_request;
 use actix_multipart::Multipart;
@@ -10,10 +9,7 @@ use chrono::Utc;
 use futures_util::StreamExt;
 use mime_guess;
 use sqlx::PgPool;
-use csv::ReaderBuilder;
 use serde_json::{json, Value};
-use calamine::{open_workbook_auto, open_workbook_from_rs, Reader, Xlsx};
-use std::io::Cursor;
 use actix_web::error::ErrorInternalServerError;
 
 
@@ -89,9 +85,37 @@ pub async fn upload_file_route(
     Ok(HttpResponse::BadRequest().body("No file uploaded"))
 }
 
+
+pub async fn get_datasets(
+    pool: web::Data<PgPool>,
+    _req: HttpRequest
+) -> Result<HttpResponse, Error> {
+    // Query the datasets
+    let datasets = dataset_repository::get_datasets(&pool)
+        .await
+        .map_err(|e| {
+            // Convert the error to an Actix-compatible error
+            actix_web::error::ErrorInternalServerError(format!(
+                "Failed to retrieve datasets: {}",
+                e
+            ))
+        })?;
+
+     // If datasets are empty, return an empty JSON array with type annotation
+     if datasets.is_empty() {
+        return Ok(HttpResponse::Ok().json(Vec::<Dataset>::new()));
+    }
+
+    Ok(HttpResponse::Ok().json(datasets))
+}
+
 // Configure function for file routes
 pub fn file_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(web::scope("/file").route("/upload", web::post().to(upload_file_route)));
+    cfg.service(
+        web::scope("/datasets")
+            .route("", web::get().to(get_datasets))
+    );
 }
 
 fn is_file_format_allowed(file_name: &str) -> bool {

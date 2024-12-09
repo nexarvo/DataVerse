@@ -50,3 +50,20 @@ pub async fn insert_new_dataset(
     // Return the inserted dataset
     Ok(dataset)
 }
+
+pub async fn get_datasets(
+    pool: &PgPool
+) -> Result<Vec<Dataset>, Error> {
+    let datasets = sqlx::query_as!(
+        Dataset,
+        r#"
+        SELECT id, file_name, file_size, file_type, dataset_url, upload_time, uploaded_by, row_count, latest_preview
+        FROM datasets
+        ORDER BY upload_time DESC
+        "#
+    )
+    .fetch_all(pool)
+    .await?;
+
+    Ok(datasets)
+}
