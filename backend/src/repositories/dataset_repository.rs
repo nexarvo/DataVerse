@@ -1,4 +1,5 @@
 use chrono::NaiveDateTime;
+use serde_json::Value;
 use sqlx::{PgPool, Error, Row};
 use uuid::Uuid;
 
@@ -13,11 +14,12 @@ pub async fn insert_new_dataset(
     upload_time: Option<NaiveDateTime>,
     uploaded_by: Option<Uuid>,
     row_count: Option<i32>,
+    latest_preview: Option<Value>
 ) -> Result<Dataset, Error> {
     let row = sqlx::query!(
         r#"
-        INSERT INTO datasets (id, file_name, file_size, file_type, dataset_url, upload_time, uploaded_by, row_count)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        INSERT INTO datasets (id, file_name, file_size, file_type, dataset_url, upload_time, uploaded_by, row_count, latest_preview)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         "#,
         Some(Uuid::new_v4()),
         file_name,
@@ -26,7 +28,8 @@ pub async fn insert_new_dataset(
         dataset_url,
         upload_time,
         uploaded_by,
-        row_count
+        row_count,
+        latest_preview
     )
     .fetch_one(pool) // Fetch the newly inserted row
     .await?;
@@ -41,6 +44,7 @@ pub async fn insert_new_dataset(
         upload_time: row.get("upload_time"),
         uploaded_by: row.get("uploaded_by"),
         row_count: row.get("row_count"),
+        latest_preview: row.get("latest_preview"),
     };
 
     // Return the inserted dataset

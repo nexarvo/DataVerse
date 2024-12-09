@@ -1,4 +1,5 @@
 use chrono::NaiveDateTime;
+use serde_json::Value;
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
@@ -11,4 +12,5 @@ pub struct Dataset {
     pub uploaded_by: Option<Uuid>,
     pub dataset_url: String,
     pub row_count: Option<i32>,
+    pub latest_preview: Option<Value>,
 }
