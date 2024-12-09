@@ -1,18 +1,15 @@
 {
-  "version": 2,
+  "source": "backend",
   "builds": [
     {
       "src": "backend/src/main.rs",
       "use": "vercel-rust"
     }
   ],
-  "env": {
-    "DATABASE_URL": "@database_url"
-  },
   "build": {
     "env": {
-      "DATABASE_URL": "@database_url"
-    },
-    "commands": ["./vercel-build.sh"]
-  }
+      "DATABASE_URL": "your-database-url-here"
+    }
+  },
+  "post-deploy": "./vercel-build.sh"
 }
