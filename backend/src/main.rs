@@ -4,11 +4,9 @@ mod models;
 mod routes;
 mod services;
 mod utils;
-use crate::db::create_datasets_table;
-use crate::db::create_user_table;
-use crate::db::establish_connection;
+mod repositories;
 use crate::routes::auth::auth_routes;
-use crate::routes::file::file_routes;
+use crate::routes::dataset::file_routes;
 use actix_cors::Cors;
 use actix_web::http::header;
 use actix_web::{
@@ -20,6 +18,7 @@ use dotenv::dotenv;
 use log::info;
 use sqlx::PgPool;
 use std::env;
+use crate::db::establish_connection_pool;
 
 async fn health_check(pool: Data<PgPool>) -> impl Responder {
     if sqlx::query("SELECT 1")
@@ -43,16 +42,14 @@ async fn main() -> std::io::Result<()> {
         .parse()
         .expect("PORT must be a valid number");
 
-    let pool = establish_connection().await;
 
-    create_user_table(&pool).await;
-    create_datasets_table(&pool).await;
+    let pool = establish_connection_pool().await;
 
     info!("Starting server on port {}", port);
 
     HttpServer::new(move || {
         App::new()
-            .app_data(Data::new(pool.clone()))
+            .app_data(web::Data::new(pool.clone()))
             .wrap(middleware::Logger::default())
             // CORS configuration
             .wrap(

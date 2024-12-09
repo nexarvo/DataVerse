@@ -19,7 +19,7 @@ pub struct GoogleSignInRequest {
 
 // Sign up route
 async fn sign_up_route(pool: web::Data<PgPool>, user: web::Json<User>) -> impl Responder {
-    match sign_up(&pool, user.into_inner()).await {
+    match sign_up(&pool, &user.into_inner()).await {
         Ok(token) => {
             // Set token in HttpOnly cookie for security
             let cookie = Cookie::build("auth_token", token)

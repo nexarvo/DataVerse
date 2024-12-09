@@ -1,6 +1,18 @@
 {
-    "source": "backend",
-    "builds": [
-    { "src": "backend/src/main.rs", "use": "vercel-rust" }
-  ]
+  "version": 2,
+  "builds": [
+    {
+      "src": "backend/src/main.rs",
+      "use": "vercel-rust"
+    }
+  ],
+  "env": {
+    "DATABASE_URL": "@database_url"
+  },
+  "build": {
+    "env": {
+      "DATABASE_URL": "@database_url"
+    },
+    "commands": ["./vercel-build.sh"]
+  }
 }

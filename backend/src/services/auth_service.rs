@@ -1,3 +1,7 @@
+use actix_web::{HttpRequest, Error};
+use jsonwebtoken::{decode, DecodingKey, Validation};
+use serde::Deserialize;
+use sqlx::PgPool;
 use reqwest::Client;
 use std::env;
 
@@ -7,17 +11,17 @@ use crate::{errors::auth_error::AuthError, utils::jwt::Jwt};
 use bcrypt::{hash, verify, DEFAULT_COST};
 use jsonwebtoken::{encode, EncodingKey, Header};
 use log::{error, info, warn};
-use sqlx::postgres::PgPool;
+use crate::repositories::user_repository;
+
 use uuid::Uuid;
 
-pub async fn sign_up(pool: &PgPool, user: User) -> Result<String, AuthError> {
-    info!("Starting sign-up process for email: {}", user.email);
-    // Check if user already exists
-    let existing_user = sqlx::query!(r#"SELECT id FROM users WHERE email = $1"#, user.email)
-        .fetch_optional(pool)
-        .await?;
 
-    if existing_user.is_some() {
+pub async fn sign_up(pool: &PgPool, user: &User) -> Result<String, AuthError> {
+    info!("Starting sign-up process for email: {}", user.email);
+    // Check if user already exists 
+    let existing_user = user_repository::find_user_by_email(pool, user.email.clone()).await;
+
+    if existing_user.is_ok() {
         warn!(
             "Attempted sign-up with an already registered email: {}",
             user.email
@@ -39,24 +43,19 @@ pub async fn sign_up(pool: &PgPool, user: User) -> Result<String, AuthError> {
     info!("Password hashed successfully for email: {}", user.email);
 
     // Insert new user
-    match sqlx::query!(
-        r#"INSERT INTO users (id, email, password_hash) VALUES ($1, $2, $3)"#,
-        Uuid::new_v4(),
-        user.email,
-        hashed_password
-    )
-    .execute(pool)
-    .await
-    {
-        Ok(_) => info!("Successfully signed user up with email: {}", user.email),
+    let insert_result = user_repository::insert_new_user(pool, user.email.clone(), hashed_password).await;
+
+    match insert_result {
+        Ok(_) => info!("Successfully signed up user with email: {}", user.email),
         Err(err) => {
-            error!(
-                "Database error while inserting new user for email {}: {:?}",
-                user.email, err
-            );
-            return Err(AuthError::DbError(err));
+            error!("Database error while inserting user for email {}: {:?}", user.email, err);
+            return Err(AuthError::DbError(sqlx::Error::Configuration(Box::new(
+                err,
+            ))));
         }
-    };
+    }
+
+    info!("Successfully signed user up with email: {}", user.email);
 
     // Generate JWT token
     let secret = env::var("JWT_SECRET")
@@ -76,20 +75,14 @@ pub async fn sign_up(pool: &PgPool, user: User) -> Result<String, AuthError> {
     Ok(token)
 }
 
-pub async fn sign_in(pool: &PgPool, email: String, password: String) -> Result<String, AuthError> {
-    info!("Starting sign-in process for email: {}", email);
+pub async fn sign_in(pool: &PgPool, user_email: String, password: String) -> Result<String, AuthError> {
+    info!("Starting sign-in process for email: {}", user_email);
 
     // Fetch the user
-    let user = sqlx::query!(
-        r#"SELECT id, password_hash FROM users WHERE email = $1"#,
-        email
-    )
-    .fetch_optional(pool)
-    .await?
-    .ok_or(AuthError::InvalidCredentials)?;
+    let user = user_repository::find_user_by_email(pool, user_email.clone()).await?.ok_or(AuthError::InvalidCredentials)?;
 
     // Ensure the password_hash is not None
-    let hashed_password = user.password_hash.ok_or(AuthError::InvalidCredentials)?;
+    let hashed_password = user.password_hash;
 
     // Verify password
     if !verify(password, &hashed_password)? {
@@ -100,7 +93,7 @@ pub async fn sign_in(pool: &PgPool, email: String, password: String) -> Result<S
         .map_err(|_| AuthError::InternalError("JWT_SECRET not set".to_owned()))?;
 
     // Generate JWT
-    let jwt = Jwt::new(user.id.to_string());
+    let jwt = Jwt::new(user.id.unwrap().to_string());
     let token = encode(
         &Header::default(),
         &jwt,
@@ -108,7 +101,7 @@ pub async fn sign_in(pool: &PgPool, email: String, password: String) -> Result<S
     )
     .map_err(|_| AuthError::TokenCreationError)?;
 
-    info!("Successfully sign-in for email: {}", email);
+    info!("Successfully sign-in for email: {}", user_email);
 
     Ok(token)
 }
@@ -162,4 +155,32 @@ pub async fn google_sign_in(id_token: String) -> Result<String, AuthError> {
             "Failed to verify Google token".to_owned(),
         )),
     }
+}
+
+/// Extract the user ID from the JWT token in the request headers.
+pub fn extract_user_id_from_token(req: &HttpRequest) -> Result<Uuid, Error> {
+    let token = req
+        .headers()
+        .get("Authorization")
+        .and_then(|header| header.to_str().ok())
+        .and_then(|auth_header| auth_header.strip_prefix("Bearer "))
+        .ok_or_else(|| actix_web::error::ErrorUnauthorized("Missing or invalid token"))?;
+
+    let secret = env::var("JWT_SECRET").map_err(|_| {
+        actix_web::error::ErrorInternalServerError("JWT_SECRET not set in environment")
+    })?;
+
+    // Decode JWT
+    let token_data = decode::<Jwt>(
+        token,
+        &DecodingKey::from_secret(secret.as_bytes()),
+        &Validation::default(),
+    )
+    .map_err(|_| actix_web::error::ErrorUnauthorized("Invalid token"))?;
+
+    // Parse `sub` as UUID
+    let user_id = token_data.claims.sub.parse::<Uuid>().map_err(|_| {
+        actix_web::error::ErrorInternalServerError("Invalid user ID in token")
+    })?;
+    Ok(user_id)
 }

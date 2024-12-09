@@ -1,16 +1,19 @@
-use crate::services::file_service::upload_to_supabase;
+use crate::services::dataset_service::upload_to_supabase;
+use crate::services::auth_service::extract_user_id_from_token;
+use crate::repositories::dataset_repository;
 use actix_multipart::Multipart;
 use actix_web::{
-    web::{self, Data},
-    Error, HttpResponse,
+    web::{self, Data}, Error, HttpRequest, HttpResponse
 };
+use chrono::Utc;
 use futures_util::StreamExt;
 use mime_guess;
 use sqlx::PgPool;
 
 pub async fn upload_file_route(
     mut payload: Multipart,
-    pool: Data<PgPool>,
+    req: HttpRequest,
+    pool: web::Data<PgPool>,
 ) -> Result<HttpResponse, Error> {
     // Iterate over the multipart fields
     while let Some(field) = payload.next().await {
@@ -49,14 +52,18 @@ pub async fn upload_file_route(
 
                 let dataset_url = upload_to_supabase(file_name.clone(), file_data).await?;
 
-                let _ = store_metadata(
-                    pool.clone(),
-                    file_name,
-                    file_size,
-                    file_type,
-                    dataset_url.clone(),
-                )
-                .await;
+                let uploaded_by = extract_user_id_from_token(&req)?;
+
+                let _ = dataset_repository::insert_new_dataset(
+                    &pool, 
+                    file_name, 
+                    file_size, 
+                    file_type, 
+                    dataset_url.clone(), 
+                    Some(Utc::now().naive_utc()), 
+                    Some(uploaded_by), 
+                    None)
+                    .await;
 
                 return Ok(HttpResponse::Ok().body(format!("File uploaded: {}", dataset_url)));
             }
@@ -88,32 +95,4 @@ fn is_file_size_allowed(file_data: &Vec<u8>) -> bool {
         return false;
     }
     return true;
-}
-
-async fn store_metadata(
-    pool: web::Data<PgPool>,
-    file_name: String,
-    file_size: i64,
-    file_type: String,
-    dataset_url: String,
-) -> Result<HttpResponse, Error> {
-    let query = r#"
-        INSERT INTO datasets (file_name, file_size, file_type, dataset_url)
-        VALUES ($1, $2, $3, $4)
-    "#;
-
-    sqlx::query(query)
-        .bind(file_name)
-        .bind(file_size)
-        .bind(file_type)
-        .bind(dataset_url)
-        .execute(pool.get_ref())
-        .await
-        .map_err(|err| {
-            // Log the error for debugging purposes
-            eprintln!("Failed to execute query: {:?}", err);
-            actix_web::error::ErrorInternalServerError("Failed to store metadata")
-        })?;
-
-    Ok(HttpResponse::Ok().body("Metadata stored successfully"))
 }

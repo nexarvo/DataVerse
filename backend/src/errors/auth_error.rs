@@ -1,7 +1,4 @@
-use bcrypt::BcryptError;
-use thiserror::Error;
-
-#[derive(Error, Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum AuthError {
     #[error("User already exists")]
     UserExists,
@@ -12,15 +9,9 @@ pub enum AuthError {
     #[error("Error creating token")]
     TokenCreationError,
     #[error("Hash error")]
-    HashError(BcryptError),
+    HashError(#[from] bcrypt::BcryptError),
     #[error("Internal error: {0}")]
     InternalError(String),
     #[error("Unauthorized")]
-    Unauthorized,
-}
-
-impl From<BcryptError> for AuthError {
-    fn from(err: BcryptError) -> Self {
-        AuthError::HashError(err)
-    }
+    Unauthorized
 }
