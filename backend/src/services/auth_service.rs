@@ -1,6 +1,5 @@
 use actix_web::{HttpRequest, Error};
 use jsonwebtoken::{decode, DecodingKey, Validation};
-use serde::Deserialize;
 use sqlx::PgPool;
 use reqwest::Client;
 use std::env;
@@ -10,7 +9,7 @@ use crate::models::user::User;
 use crate::{errors::auth_error::AuthError, utils::jwt::Jwt};
 use bcrypt::{hash, verify, DEFAULT_COST};
 use jsonwebtoken::{encode, EncodingKey, Header};
-use log::{error, info, warn};
+use log::{error, info};
 use crate::repositories::user_repository;
 
 use uuid::Uuid;
@@ -19,10 +18,10 @@ use uuid::Uuid;
 pub async fn sign_up(pool: &PgPool, user: &User) -> Result<String, AuthError> {
     info!("Starting sign-up process for email: {}", user.email);
     // Check if user already exists 
-    let existing_user = user_repository::find_user_by_email(pool, user.email.clone()).await;
+    let existing_user = user_repository::find_user_by_email(pool, user.email.clone()).await?;
 
-    if existing_user.is_ok() {
-        warn!(
+    if let Some(_) = existing_user {
+        error!(
             "Attempted sign-up with an already registered email: {}",
             user.email
         );

@@ -1,6 +1,7 @@
 use crate::services::dataset_service::upload_to_supabase;
 use crate::services::auth_service::extract_user_id_from_token;
 use crate::repositories::dataset_repository;
+use crate::utils::jwt::get_user_id_from_request;
 use actix_multipart::Multipart;
 use actix_web::{
     web::{self, Data}, Error, HttpRequest, HttpResponse
@@ -12,8 +13,8 @@ use sqlx::PgPool;
 
 pub async fn upload_file_route(
     mut payload: Multipart,
-    req: HttpRequest,
     pool: web::Data<PgPool>,
+    req: HttpRequest
 ) -> Result<HttpResponse, Error> {
     // Iterate over the multipart fields
     while let Some(field) = payload.next().await {
@@ -52,7 +53,9 @@ pub async fn upload_file_route(
 
                 let dataset_url = upload_to_supabase(file_name.clone(), file_data).await?;
 
-                let uploaded_by = extract_user_id_from_token(&req)?;
+                let uploaded_by = get_user_id_from_request(&req);
+
+                println!("This the user id: {:?}", uploaded_by);
 
                 let _ = dataset_repository::insert_new_dataset(
                     &pool, 
@@ -61,7 +64,7 @@ pub async fn upload_file_route(
                     file_type, 
                     dataset_url.clone(), 
                     Some(Utc::now().naive_utc()), 
-                    Some(uploaded_by), 
+                    uploaded_by, 
                     None)
                     .await;
 

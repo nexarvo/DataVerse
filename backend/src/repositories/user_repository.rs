@@ -20,8 +20,6 @@ pub async fn find_user_by_email(
     .fetch_optional(pool)
     .await?;
 
-    println!("Query result: {:?}", user);
-
     Ok(user)
 }
 

@@ -2,7 +2,7 @@ use crate::models::user::User;
 use crate::services::auth_service::{google_sign_in, sign_in, sign_up};
 use crate::utils::response::{ErrorResponse, SuccessResponse};
 use actix_web::cookie::Cookie;
-use actix_web::{web, HttpResponse, Responder};
+use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
@@ -18,7 +18,7 @@ pub struct GoogleSignInRequest {
 }
 
 // Sign up route
-async fn sign_up_route(pool: web::Data<PgPool>, user: web::Json<User>) -> impl Responder {
+async fn sign_up_route(pool: web::Data<PgPool>, user: web::Json<User>, req: HttpRequest) -> impl Responder {
     match sign_up(&pool, &user.into_inner()).await {
         Ok(token) => {
             // Set token in HttpOnly cookie for security
@@ -43,7 +43,7 @@ async fn sign_up_route(pool: web::Data<PgPool>, user: web::Json<User>) -> impl R
 }
 
 // Sign in route
-async fn sign_in_route(pool: web::Data<PgPool>, creds: web::Json<SignInRequest>) -> impl Responder {
+async fn sign_in_route(pool: web::Data<PgPool>, creds: web::Json<SignInRequest>, req: HttpRequest) -> impl Responder {
     match sign_in(&pool, creds.email.clone(), creds.password.clone()).await {
         Ok(token) => {
             let cookie = Cookie::build("auth_token", token)
@@ -61,7 +61,7 @@ async fn sign_in_route(pool: web::Data<PgPool>, creds: web::Json<SignInRequest>)
 }
 
 // Google Sign-in route
-async fn google_sign_in_route(creds: web::Json<GoogleSignInRequest>) -> impl Responder {
+async fn google_sign_in_route(creds: web::Json<GoogleSignInRequest>, req: HttpRequest) -> impl Responder {
     match google_sign_in(creds.id_token.clone()).await {
         Ok(token) => HttpResponse::Ok().json(token),
         Err(_) => HttpResponse::Unauthorized().finish(),

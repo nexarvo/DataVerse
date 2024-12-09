@@ -17,7 +17,9 @@ use actix_web::{
 use dotenv::dotenv;
 use log::info;
 use sqlx::PgPool;
+use utils::token_verification_middleware::AuthMiddleware;
 use std::env;
+use std::rc::Rc;
 use crate::db::establish_connection_pool;
 
 async fn health_check(pool: Data<PgPool>) -> impl Responder {
@@ -60,6 +62,9 @@ async fn main() -> std::io::Result<()> {
                     .allowed_headers(vec![header::CONTENT_TYPE, header::AUTHORIZATION]) // Allowed headers
                     .max_age(3600), // Preflight request cache duration in seconds
             )
+            .wrap(AuthMiddleware {
+                secret: Rc::new(env::var("JWT_SECRET").expect("JWT_SECRET must be set")),
+            })
             .route("/health", web::get().to(health_check))
             .configure(auth_routes)
             .configure(file_routes)
