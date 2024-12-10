@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  applyTransformations,
-  uploadDataset,
-} from '../services/transformations'; // We'll create this service
+import { applyTransformations } from '../services/transformations'; // We'll create this service
+
+import { uploadDataset } from '../services/datasets';
 
 const TransformationsPage: React.FC = () => {
   const navigate = useNavigate();

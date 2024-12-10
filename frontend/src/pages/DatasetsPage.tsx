@@ -1,4 +1,5 @@
-import React, { useState, useRef } from 'react';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React, { useState, useRef, useEffect } from 'react';
 import DatasetIcon from '../assets/data-icon-accent.svg';
 import RecentIconWhite from '../assets/recent-icon-white.svg';
 import RecentIconAccent from '../assets/recent-icon-accent.svg';
@@ -9,57 +10,34 @@ import DatabaseIconAccent from '../assets/database-icon-accent.svg';
 import { Tab } from '@headlessui/react';
 import DatasetSingleComponent from '../components/DatasetSingleComponent';
 import DatasetPreview from '../components/DatasetPreview';
+import { getDatasets } from '../services/datasets';
 
 const DataPage: React.FC = () => {
   const [selectedTab, setSelectedTab] = useState('All');
   const [selectedDatasetIndex, setselectedDatasetIndex] = useState(0);
-  const datasets = {
-    All: [
-      {
-        title: 'WORKSPACE_FCT',
-        description: 'Non-changing facts about workspaces and subscriptions',
-        isFavorite: true,
-      },
-      {
-        title: 'WORKSPACE_REV',
-        description:
-          'Monthly updating slowly-changing-dimension table of revenue for our workspace...',
-        isFavorite: false,
-      },
-      {
-        title: 'WORKSPACE_FCT',
-        description: 'Non-changing facts about workspaces and subscriptions',
-        isFavorite: false,
-      },
-    ],
-    RecentlyUsed: [
-      {
-        title: 'ORDER_ITEMS',
-        description:
-          'Stores details of each item within an order, including item and inventory specifics and...',
-        isFavorite: true,
-      },
-      {
-        title: 'INVENTORY_ITEMS',
-        description:
-          'Holds inventory information for products from an example ECommerce dataset, including...',
-        isFavorite: false,
-      },
-    ],
-    Favorites: [
-      {
-        title: 'WORKSPACE_FCT',
-        description: 'Non-changing facts about workspaces and subscriptions',
-        isFavorite: true,
-      },
-      {
-        title: 'ORDER_ITEMS',
-        description:
-          'Stores details of each item within an order, including item and inventory specifics and...',
-        isFavorite: true,
-      },
-    ],
-  };
+
+  const [newDatasets, setDatasets] = useState<any>({
+    All: [],
+    RecentlyUsed: [],
+    Favorites: [],
+  });
+
+  useEffect(() => {
+    const fetchDatasets = async () => {
+      try {
+        const fetchedDatasets = await getDatasets();
+        setDatasets({
+          All: fetchedDatasets,
+          RecentlyUsed: fetchedDatasets,
+          Favorites: fetchedDatasets,
+        });
+      } catch (error) {
+        console.error('Error fetching datasets:', error);
+      }
+    };
+
+    fetchDatasets();
+  }, []);
 
   const [leftPaneWidth, setLeftPaneWidth] = useState(300); // initial width of left pane (in pixels)
 
@@ -200,12 +178,19 @@ const DataPage: React.FC = () => {
       </Tab.Group>
 
       {/* Main content area */}
-      <div className='flex space-x-6'>
+      <div className='parent h-[72vh] flex space-x-6'>
         {/* Left pane */}
-        <div className='p-4' style={{ width: leftPaneWidth }}>
+        <div
+          className='child p-4 max-h-full overflow-y-auto custom-scrollbar'
+          style={{ width: leftPaneWidth }}
+        >
           <ul className='space-y-2'>
-            {datasets[selectedTab]?.map((dataset, index) => (
-              <li key={index} className='cursor-pointer'>
+            {newDatasets[selectedTab]?.map((dataset: any, index: number) => (
+              <li
+                key={index}
+                className={`cursor-pointer ${selectedDatasetIndex === index ? 'bg-third' : ''}`}
+                onClick={() => setselectedDatasetIndex(index)}
+              >
                 <DatasetSingleComponent dataset={dataset} />
               </li>
             ))}
@@ -216,13 +201,14 @@ const DataPage: React.FC = () => {
         <div
           ref={dragRef}
           onMouseDown={handleMouseDown}
-          className='cursor-ew-resize bg-gray-600 w-[1px]'
+          className='cursor-ew-resize bg-gray-600'
+          style={{ width: '0px', margin: '2px', padding: '1px' }}
         ></div>
 
         {/* Preview Pane */}
         <div className='flex-1 p-4'>
           <DatasetPreview
-            dataset={datasets[selectedTab][selectedDatasetIndex]}
+            dataset={newDatasets[selectedTab][selectedDatasetIndex]}
           />
         </div>
       </div>

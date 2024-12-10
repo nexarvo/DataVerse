@@ -22,19 +22,3 @@ export const applyTransformations = async (formData: FormData) => {
     );
   }
 };
-
-export const uploadDataset = async (formData: FormData) => {
-  try {
-    const response = await axios.post(`${API_URL}/file/upload`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    return response.data;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
-    throw new Error(
-      error.response?.data?.message || 'Error applying transformations',
-    );
-  }
-};

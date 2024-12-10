@@ -3,7 +3,7 @@ import NotificationIcon from '../assets/notification-icon.svg';
 
 const TopBar: React.FC = () => {
   return (
-    <div className='h-16 bg-dark flex items-center justify-between px-6 shadow-md'>
+    <div className='h-16 bg-dark flex items-center justify-between px-6'>
       {/* Search Bar */}
       <div className='relative w-1/3 ml-72'>
         <input

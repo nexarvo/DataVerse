@@ -84,3 +84,23 @@ button:hover {
   background-size: 500px 500px;
   background-position: center;
 }
+
+/* Hide the scrollbar intersection (bottom-right corner white space) */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background-color: #1e293b; /* Match the background color of your table */
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #4b5563; /* Customize the scrollbar thumb */
+  border-radius: 10px;
+}
+
+/* Optional: Hover effect for the scrollbar thumb */
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #6b7280;
+}

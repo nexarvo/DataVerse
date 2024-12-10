@@ -15,10 +15,10 @@ const DatasetSingleComponent: React.FC<DatasetSingleComponentProps> = ({
     <div className='py-2 px-1 hover:bg-third'>
       <div className='flex items-center'>
         <img src={SpreadsheetIcon} alt='$' className='h-4 w-4 mr-2' />
-        <span className='text-sm text-white'>{dataset.title}</span>
+        <span className='text-sm text-white'>{dataset?.file_name}</span>
         <img src={StarIcon} alt='$' className='h-3 w-3 ml-2' />
       </div>
-      <p className='text-xs text-gray-500'>{dataset.description}</p>
+      <p className='text-xs text-gray-500'>{'Hi this is sample description'}</p>
     </div>
   );
 };
