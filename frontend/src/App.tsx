@@ -4,8 +4,8 @@ import './index.css';
 import LandingPage from './pages/LandingPage';
 import AuthPage from './pages/AuthPage';
 import Dashboard from './pages/Dashboard';
-import TransformationsPage from './pages/TransformationPage';
 import DataPage from './pages/DatasetsPage';
+import NotebookPage from './pages/NoteBookPage';
 
 const App: React.FC = () => {
   return (
@@ -19,8 +19,8 @@ const App: React.FC = () => {
         <Route path='/dashboard' element={<Dashboard />}>
           {/* Nested Routes for Dashboard */}
           <Route path='data' element={<DataPage />} />
-          <Route path='transformations' element={<TransformationsPage />} />
         </Route>
+        <Route path='notebook' element={<NotebookPage />} />
       </Routes>
     </BrowserRouter>
   );

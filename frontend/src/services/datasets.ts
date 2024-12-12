@@ -27,3 +27,15 @@ export const getDatasets = async () => {
     throw new Error(error.response?.data?.message || 'Error getting datasets');
   }
 };
+
+export const getDatasetById = async (id: string) => {
+  try {
+    const response = await axios.get(`${API_URL}/datasets/${id}`);
+    return response.data;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.message || `Error getting dataset with id: ${id}`,
+    );
+  }
+};

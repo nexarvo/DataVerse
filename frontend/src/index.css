@@ -104,3 +104,54 @@ button:hover {
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background-color: #6b7280;
 }
+
+.custom-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-toggle {
+  display: flex;
+  align-items: center;
+  background-color: #2d3748; /* Background of dropdown */
+  color: white;
+  padding: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  width: 250px; /* Adjust width as needed */
+}
+
+.selected-option {
+  display: flex;
+  align-items: center;
+  flex-grow: 1;
+}
+
+.selected-option img {
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+}
+
+.selected-option .dataset-name {
+  font-size: 14px;
+}
+
+.dropdown-icon {
+  margin-left: 8px;
+  font-size: 18px;
+  color: white;
+}
+
+/* Dropdown options when the select is opened */
+select:focus + .dropdown-toggle {
+  outline: none;
+}
+
+select:focus + .dropdown-toggle .selected-option {
+  background-color: #4a5568; /* Change to your desired color */
+}
+
+select:focus + .dropdown-toggle .dropdown-icon {
+  color: #63b3ed; /* Change color for the dropdown icon */
+}

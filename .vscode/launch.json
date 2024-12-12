@@ -1,0 +1,20 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug Rust Application in Backend",
+      "cargo": {
+        "args": ["run"],
+        "workspace": "${workspaceFolder}/backend"
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}/backend", // Make sure the cwd is set to /backend
+      "stopAtEntry": false,
+      "env": {},
+      "externalConsole": false,
+      "preLaunchTask": "cargo build" // Ensures build is done before launch
+    }
+  ]
+}

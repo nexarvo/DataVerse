@@ -1,6 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React from 'react';
 
+import {
+  isNumber,
+  isDate,
+  isBoolean,
+  isNullOrUndefined,
+} from '../utils/columnDataTypeHerlper';
+
 // Import Font Awesome icon library
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
@@ -17,23 +24,6 @@ interface TableComponentProps {
 }
 
 const TableComponent: React.FC<TableComponentProps> = ({ headers, data }) => {
-  // Function to detect if a string can be converted to a number
-  const isNumber = (value: string) =>
-    !isNaN(parseFloat(value)) && isFinite(value);
-
-  // Function to detect if a string is a valid date
-  const isDate = (value: string) => {
-    const parsedDate = new Date(value);
-    return !isNaN(parsedDate.getTime());
-  };
-
-  // Function to check if the value is a boolean
-  const isBoolean = (value: any) => typeof value === 'boolean';
-
-  // Function to check if the value is null or undefined
-  const isNullOrUndefined = (value: any) =>
-    value === null || value === undefined;
-
   // Combined function to handle alignment and width based on value type
   const getDynamicStyle = (value: any) => {
     let alignment = 'text-left'; // Default alignment

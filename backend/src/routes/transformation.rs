@@ -25,7 +25,7 @@ pub async fn apply_transformation(
     // Step 2: Apply transformations
     let transformations_vec = vec![transformations.clone()];
     let mut transformed_data =
-        apply_transformations(dataset, transformations_vec).map_err(|e| {
+        apply_transformations(dataset_id, dataset, transformations_vec).map_err(|e| {
             error!("Failed to apply transformation: {}", e);
             actix_web::error::ErrorInternalServerError(format!(
                 "Failed to apply transformation: {}",
@@ -62,12 +62,4 @@ pub async fn apply_transformation(
     })?;
 
     Ok(HttpResponse::Ok().json(json_string))
-}
-
-// Register all transformation routes
-pub fn transformation_routes(cfg: &mut web::ServiceConfig) {
-    cfg.route(
-        "/datasets/{dataset_id}/apply-transformation",
-        web::post().to(apply_transformation),
-    );
 }

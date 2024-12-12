@@ -11,6 +11,9 @@ use mime_guess;
 use sqlx::PgPool;
 use serde_json::{json, Value};
 use actix_web::error::ErrorInternalServerError;
+use uuid::Uuid;
+
+use super::transformation::apply_transformation;
 
 
 pub async fn upload_file_route(
@@ -109,12 +112,38 @@ pub async fn get_datasets(
     Ok(HttpResponse::Ok().json(datasets))
 }
 
+pub async fn get_dataset_by_id(
+    pool: web::Data<PgPool>,
+    id: web::Path<Uuid>,
+    _req: HttpRequest,
+) -> Result<HttpResponse, Error> {
+    let dataset_id = id.into_inner();
+    // Query the dataset
+    let dataset = dataset_repository::get_dataset_by_id(&pool, dataset_id)
+        .await
+        .map_err(|e| {
+            // Convert the error to an Actix-compatible error
+            actix_web::error::ErrorInternalServerError(format!(
+                "Failed to retrieve dataset: {}",
+                e
+            ))
+        })?;
+
+    // Return the dataset as a JSON response
+    Ok(HttpResponse::Ok().json(dataset))
+}
+
 // Configure function for file routes
 pub fn file_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(web::scope("/file").route("/upload", web::post().to(upload_file_route)));
     cfg.service(
         web::scope("/datasets")
             .route("", web::get().to(get_datasets))
+            .route("/{id}", web::get().to(get_dataset_by_id))
+            .route(
+                "/{dataset_id}/apply-transformation",
+                web::post().to(apply_transformation),
+            ),
     );
 }
 

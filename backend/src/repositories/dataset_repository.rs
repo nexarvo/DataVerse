@@ -67,3 +67,22 @@ pub async fn get_datasets(
 
     Ok(datasets)
 }
+
+pub async fn get_dataset_by_id(
+    pool: &PgPool,
+    id: Uuid,
+) -> Result<Option<Dataset>, Error> {
+    let dataset = sqlx::query_as!(
+        Dataset,
+        r#"
+        SELECT id, file_name, file_size, file_type, dataset_url, upload_time, uploaded_by, row_count, latest_preview
+        FROM datasets
+        WHERE id = $1
+        "#,
+        id
+    )
+    .fetch_optional(pool)
+    .await?;
+
+    Ok(dataset)
+}
