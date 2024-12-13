@@ -4,6 +4,8 @@ use std::{error::Error, path::PathBuf};
 use tokio::fs;
 use uuid::Uuid;
 
+use crate::db::duck_db_connection::DUCKDB_CONN;
+
 pub async fn upload_to_supabase(
     file_name: String,
     data: Vec<u8>,

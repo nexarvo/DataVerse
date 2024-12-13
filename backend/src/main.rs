@@ -5,12 +5,14 @@ mod routes;
 mod services;
 mod utils;
 mod repositories;
+mod dto;
 use crate::routes::auth::auth_routes;
 use crate::routes::dataset::file_routes;
 use actix_cors::Cors;
 use actix_web::http::header;
+use db::duck_db_migrations::run_duckdb_migrations;
+use routes::dataframe::dataframe_routes;
 use crate::db::establish_connection_pool;
-use crate::routes::transformation::transformation_routes;
 use actix_web::{
     middleware,
     web::{self, Data},
@@ -22,6 +24,7 @@ use sqlx::PgPool;
 use utils::token_verification_middleware::AuthMiddleware;
 use std::env;
 use std::rc::Rc;
+use std::sync::Mutex;
 
 async fn health_check(pool: Data<PgPool>) -> impl Responder {
     if sqlx::query("SELECT 1")
@@ -48,6 +51,9 @@ async fn main() -> std::io::Result<()> {
 
     let pool = establish_connection_pool().await;
 
+    // Run migrations
+    run_duckdb_migrations();
+
     info!("Starting server on port {}", port);
 
     HttpServer::new(move || {
@@ -69,7 +75,8 @@ async fn main() -> std::io::Result<()> {
             .route("/health", web::get().to(health_check))
             .configure(auth_routes)
             .configure(file_routes)
-            .configure(transformation_routes)
+            .configure(dataframe_routes)
+
     })
     .bind(("127.0.0.1", port))?
     .run()

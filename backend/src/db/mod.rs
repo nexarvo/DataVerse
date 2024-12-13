@@ -1,8 +1,8 @@
 use sqlx::PgPool;
 use std::env;
 
-pub mod duck_db_connection;
 pub mod duck_db_migrations;
+pub mod duck_db_connection;
 
 pub async fn establish_connection_pool() -> PgPool {
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");

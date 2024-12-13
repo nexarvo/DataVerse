@@ -1,6 +1,6 @@
-use crate::services::transformation_service::{
-    apply_transformations, load_dataset, save_transformation_history,
-};
+use crate::{repositories::dataframe::save_dataframe, services::{dataframe_service::save_dataframe_to_supabase, transformation_service::{
+    apply_transformations, load_dataset
+}}, repositories::transformations::save_transformation_history};
 use actix_web::{web, Error, HttpResponse};
 use log::error;
 use polars::prelude::*;
@@ -24,7 +24,7 @@ pub async fn apply_transformation(
 
     // Step 2: Apply transformations
     let transformations_vec = vec![transformations.clone()];
-    let mut transformed_data =
+    let parquet_file_path =
         apply_transformations(dataset_id, dataset, transformations_vec).map_err(|e| {
             error!("Failed to apply transformation: {}", e);
             actix_web::error::ErrorInternalServerError(format!(
@@ -34,32 +34,21 @@ pub async fn apply_transformation(
         })?;
 
     // Step 3: Save history
-    save_transformation_history(&pool, dataset_id, &transformations, &transformed_data)
+    let transformation = save_transformation_history(&pool, dataset_id, &transformations)
         .await
         .map_err(|e| {
-            error!("Failed to save history: {}", e);
-            actix_web::error::ErrorInternalServerError(format!("Failed to save history: {}", e))
+            error!("Failed to save transformation: {}", e);
+            actix_web::error::ErrorInternalServerError(format!("Failed to save transformation: {}", e))
         })?;
 
-    // Step 4: Serialize DataFrame to JSON
-    let mut json_data = Vec::new();
-    {
-        let writer = JsonWriter::new(&mut json_data);
-        writer
-            .with_json_format(JsonFormat::Json)
-            .finish(&mut transformed_data)
-            .map_err(|e| {
-                actix_web::error::ErrorInternalServerError(format!(
-                    "Failed to serialize DataFrame: {}",
-                    e
-                ))
-            })?;
-    }
+    let (dataframe_id, file_url) = save_dataframe_to_supabase(parquet_file_path)
+        .await
+        .map_err(|e| {
+            error!("Failed to save dataframe: {}", e);
+            actix_web::error::ErrorInternalServerError(format!("Failed to save dataframe: {}", e))
+        })?;
 
-    // Step 5: Return transformed data as JSON
-    let json_string = String::from_utf8(json_data).map_err(|e| {
-        actix_web::error::ErrorInternalServerError(format!("Failed to convert JSON data: {}", e))
-    })?;
+    let _ = save_dataframe(&pool, dataframe_id, transformation.id, file_url).await;
 
-    Ok(HttpResponse::Ok().json(json_string))
+    Ok(HttpResponse::Ok().json(dataframe_id))
 }
