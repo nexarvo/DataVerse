@@ -10,4 +10,10 @@ export type ApplyTransformationParam = {
   value: string;
 };
 
+export type GetDataframeByIdParam = {
+  dataframe_id: string;
+  page: number;
+  page_size: number;
+};
+
 export default ApplyTransformationApiType;

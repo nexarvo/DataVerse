@@ -10,7 +10,7 @@ pub struct GetDataFrameParams {
 
 #[derive(Serialize)]
 pub struct PaginatedDataFrameResponse {
-    pub data: DataFramePreview,
+    pub latest_preview: DataFramePreview,
     pub total_rows: u32,         
     pub page: u32,               
     pub page_size: u32,          

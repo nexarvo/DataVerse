@@ -86,12 +86,12 @@ pub fn generate_dataframe_preview(
     // Get the total rows in the DataFrame (for pagination metadata)
     let total_rows = df.height() as u32;
 
-    let data = DataFramePreview {headers, preview};
+    let latest_preview = DataFramePreview {headers, preview};
 
     info!("Successfully generated preview for dataframe");
     // Return the headers and preview along with pagination metadata
     PaginatedDataFrameResponse {
-        data,
+        latest_preview,
         total_rows,
         page,
         page_size: page_size as u32,

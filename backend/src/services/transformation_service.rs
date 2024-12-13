@@ -57,7 +57,7 @@ pub fn apply_transformations(
                 let column_series = df.column(column)?;
                 match column_series.dtype() {
                     DataType::Utf8 => {
-                        info!("Came Utf8");
+                        info!("The operation will be on a Utf8 type");
                         let value_str = value.as_str().ok_or_else(|| {
                             Box::<dyn std::error::Error>::from("Value type mismatch for Utf8 column")
                         })?;
@@ -78,11 +78,13 @@ pub fn apply_transformations(
                         df = df.filter(&mask)?;
                     }
                     DataType::Int64 => {
-                        let value_int = value.as_i64().ok_or_else(|| {
+                        info!("The operation will be on a Int64 type");
+                        let value_int = value.as_str().ok_or_else(|| {
                             Box::<dyn std::error::Error>::from("Value type mismatch for Int64 column")
+                        })?.parse::<i64>().map_err(|_| {
+                            Box::<dyn std::error::Error>::from("Failed to parse value to Int64")
                         })?;
                         let column_data = column_series.i64()?;
-                        info!("Came Int64");
 
                         let mask = column_data
                             .into_iter()
@@ -99,7 +101,7 @@ pub fn apply_transformations(
                         df = df.filter(&mask)?;
                     }
                     DataType::Float64 => {
-                        info!("Came Float64");
+                        info!("The operation will be on a Float64 type");
                     
                         // Assuming `value` is a `&JsonValue` (e.g., `&JsonValue` might represent a JSON field)
                         let value_str = value.as_str().ok_or_else(|| {

@@ -7,6 +7,7 @@ import DownRightIcon from '../assets/down-right-icon.svg';
 import CommentsIcon from '../assets/comment-icon.svg';
 import MenuIcon from '../assets/menu-icon.svg';
 import QuickFilter from './QuickFilter';
+import PaginationRow from './PaginationRow';
 
 interface CellComponentProps {
   datasetsList: any[];
@@ -20,6 +21,10 @@ const CellComponent: React.FC<CellComponentProps> = ({ datasetsList }) => {
     datasetsList.length > 0 ? datasetsList[0].id : null,
   );
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(20);
+  const [totalRows, setTotalRows] = useState(dataset?.total_rows || 0);
+
   const handleLabelChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setLabel(e.target.value);
   };
@@ -30,6 +35,11 @@ const CellComponent: React.FC<CellComponentProps> = ({ datasetsList }) => {
 
   const handleDatasetChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedDatasetId(e.target.value);
+  };
+
+  const handleDataChange = (dataset: any) => {
+    setDataset(dataset);
+    setTotalRows(dataset?.total_rows || 0);
   };
 
   useEffect(() => {
@@ -97,6 +107,7 @@ const CellComponent: React.FC<CellComponentProps> = ({ datasetsList }) => {
               dataset_id={selectedDatasetId}
               colums={dataset?.latest_preview.headers}
               data={dataset?.latest_preview.preview}
+              handleDatasetChange={handleDataChange}
             />
           </div>
         </div>
@@ -107,6 +118,7 @@ const CellComponent: React.FC<CellComponentProps> = ({ datasetsList }) => {
           data={dataset?.latest_preview.preview}
         />
       </div>
+      <PaginationRow dataset={dataset} />
       <div className='flex items-center'>
         <img src={DownRightIcon} alt='$' className='h-3 w-3 mt-2 ml-2' />
         <span className='text-blue-400 text-xs mt-3 ml-2 bg-blue-950 px-1 rounded-sm'>

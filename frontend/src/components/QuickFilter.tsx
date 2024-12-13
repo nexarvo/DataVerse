@@ -5,17 +5,20 @@ import FilterIconGray from '../assets/filter-icon-gray.svg';
 import SingleQuickFilter from './SingleQuickFilter';
 import { applyTransformations } from '../services/transformations';
 import { ApplyTransformationParam } from '../utils/apiTypes';
+import { getDataframeById } from '../services/dataframe';
 
 interface QuickFilterProps {
   dataset_id: string;
   colums: any[];
   data: any[];
+  handleDatasetChange: (dataset: any) => void;
 }
 
 const QuickFilter: React.FC<QuickFilterProps> = ({
   dataset_id,
   colums,
   data,
+  handleDatasetChange,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [filters, setFilters] = useState<number[]>([0]); // Tracks filter indices, starts with one filter
@@ -29,7 +32,17 @@ const QuickFilter: React.FC<QuickFilterProps> = ({
     setFilters([...filters, filters.length]);
     const transformation = { type: 'filter', action: 'filter', params: filter };
     try {
-      await applyTransformations(dataset_id, transformation);
+      const dataframeId = await applyTransformations(
+        dataset_id,
+        transformation,
+      );
+
+      const dataframe = await getDataframeById({
+        dataframe_id: dataframeId,
+        page: 1,
+        page_size: 20,
+      });
+      handleDatasetChange(dataframe);
     } catch (err) {
       console.log('Transformation Failed: ', err);
     }
