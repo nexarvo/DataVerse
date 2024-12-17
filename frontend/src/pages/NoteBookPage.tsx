@@ -3,9 +3,11 @@ import { useSelector, useDispatch } from 'react-redux';
 import CellComponent from '../components/CellComponent';
 import { getDatasets } from '../services/datasets';
 import {
+  addCellToPosition,
   getCellById,
   getCells,
   mapFetchedCellsToCellState,
+  mapFetchedCellToCellState,
 } from '../services/cellService';
 import { RootState } from '../app/store'; // Update with your store path
 import {
@@ -18,6 +20,7 @@ import { getDataframesMetadata } from '../services/dataframe';
 import LeftNavBar from '../components/LeftNavBar';
 import TopBar from '../components/TopBar';
 import CellOptionsComponent from '../components/CellOptionsComponent';
+import { AddCellToPositionParam } from '../utils/apiTypes';
 
 const NotebookPage: React.FC = () => {
   const dispatch = useDispatch();
@@ -55,6 +58,15 @@ const NotebookPage: React.FC = () => {
       dispatch(setDataframeMetadataList(fetchedDataframesMetadataList));
     } catch (error) {
       console.error('Error fetching cell:', error);
+    }
+  };
+
+  const handleAddCell = async (params: AddCellToPositionParam) => {
+    try {
+      const addedCell = await addCellToPosition(params);
+      dispatch(addCell(mapFetchedCellToCellState(addedCell)));
+    } catch (error) {
+      console.error('Error adding cell:', error);
     }
   };
 
@@ -166,7 +178,12 @@ const NotebookPage: React.FC = () => {
               )}
               {selectedCellId === cell.id && (
                 <div className='flex justify-center items-center'>
-                  <CellOptionsComponent />
+                  <CellOptionsComponent
+                    handleAddCell={handleAddCell}
+                    reference_cell_id={cell.id}
+                    input_dataframe_id={cell.viewDataset?.id || ''}
+                    cell_order={cell.cell_order + 1}
+                  />
                 </div>
               )}
             </div>

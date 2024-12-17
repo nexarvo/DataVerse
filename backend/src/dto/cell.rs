@@ -12,6 +12,8 @@ use super::{
 pub struct CellDTO {
     pub id: Uuid,
     pub name: Option<String>,
+    pub cell_order: Option<i32>,
+    pub cell_type: Option<String>,
     pub input_dataframe: Option<DataframeMetadataDTO>,
     pub input_dataset: Option<DatasetMetadataDTO>,
     pub result_dataframe: Option<DataframeMetadataDTO>,

@@ -50,17 +50,8 @@ const notebookSlice = createSlice({
     setCells: (state, action: PayloadAction<CellState[]>) => {
       state.cells = action.payload;
     },
-    addCell: (state) => {
-      state.cells.push({
-        id: uuidv4(),
-        label: '',
-        isEditing: false,
-        viewDataset: null,
-        selectedDatasetId: '',
-        currentPage: 0,
-        pageSize: 10,
-        totalRows: 0,
-      });
+    addCell: (state, action: PayloadAction<CellState>) => {
+      state.cells.push(action.payload);
     },
     removeCell: (state, action: PayloadAction<string>) => {
       state.cells = state.cells.filter((cell) => cell.id !== action.payload);

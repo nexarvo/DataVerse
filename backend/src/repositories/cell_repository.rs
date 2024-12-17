@@ -199,6 +199,8 @@ pub async fn get_cells(pool: &PgPool) -> Result<Vec<CellDTO>, Error> {
         let cell_dto = CellDTO {
             id: cell_row.id,
             name: cell_row.name,
+            cell_order: cell_row.cell_order,
+            cell_type: cell_row.cell_type,
             input_dataframe,
             input_dataset,
             result_dataframe,
@@ -350,6 +352,8 @@ pub async fn get_cell_by_id(pool: &PgPool, cell_id: uuid::Uuid) -> Result<CellDT
     let cell_dto = CellDTO {
         id: cell_row.id,
         name: cell_row.name,
+        cell_order: cell_row.cell_order,
+        cell_type: cell_row.cell_type,
         input_dataframe,
         input_dataset,
         result_dataframe,

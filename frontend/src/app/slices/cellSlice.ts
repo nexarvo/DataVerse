@@ -12,6 +12,8 @@ export interface CellState {
   currentPage: number;
   pageSize: number;
   totalRows: number;
+  cell_type: string;
+  cell_order: number;
 }
 
 // Define the initial state for the slice
@@ -24,6 +26,8 @@ const initialState: CellState = {
   currentPage: 1,
   pageSize: 20,
   totalRows: 0,
+  cell_type: 'table', //Default to a table cell
+  cell_order: 0,
 };
 
 // Create the cellSlice with actions and reducers
@@ -52,18 +56,26 @@ const cellSlice = createSlice({
     setTotalRows(state, action: PayloadAction<number>) {
       state.totalRows = action.payload;
     },
+    setCellType(state, action: PayloadAction<string>) {
+      state.cell_type = action.payload;
+    },
+    setCellOrder(state, action: PayloadAction<number>) {
+      state.cell_order = action.payload;
+    },
   },
 });
 
 // Export the actions for use in the component
 export const {
-  id,
+  setId,
   setLabel,
   toggleEditing,
   setSelectedDatasetId,
   setViewDataset,
   setPage,
   setTotalRows,
+  setCellOrder,
+  setCellType,
 } = cellSlice.actions;
 
 // Export the reducer to be added to the store

@@ -10,8 +10,21 @@ import MoreBlueIcon from '../assets/more-hollow-blue-icon.svg';
 import PivotBlueIcon from '../assets/pivot-table-blue-icon.svg';
 import DataBlueIcon from '../assets/data-blue-icon.svg';
 import SQLBlueIcon from '../assets/sql-blue-icon.svg';
+import { AddCellToPositionParam } from '../utils/apiTypes';
 
-const CellOptionsComponent: React.FC = () => {
+interface CellOptionsComponentProps {
+  handleAddCell: (cell: AddCellToPositionParam) => void;
+  input_dataframe_id: string;
+  reference_cell_id: string;
+  cell_order: number;
+}
+
+const CellOptionsComponent: React.FC<CellOptionsComponentProps> = ({
+  handleAddCell,
+  input_dataframe_id,
+  reference_cell_id,
+  cell_order,
+}) => {
   return (
     <div className='flex bg-gray-800 text-white p-4 w-3/5 border border-blue-300 rounded-md drop-shadow-lg self-center items-center'>
       <button className='mx-2'>
@@ -19,19 +32,64 @@ const CellOptionsComponent: React.FC = () => {
       </button>
       {/* Vertical Line */}
       <div className='border-l border-blue-300 h-12 mx-2'></div>{' '}
-      <button className='px-4 py-1'>
+      <button
+        className='px-4 py-1'
+        onClick={() =>
+          handleAddCell({
+            cell: {
+              name: 'Untitled Cell',
+              cell_type: 'sql',
+              input_dataframe_id: undefined,
+              input_dataset_id: undefined,
+              cell_order: undefined,
+            },
+            reference_cell_id: reference_cell_id,
+            cell_order: cell_order,
+          })
+        }
+      >
         <div className='flex flex-col items-center'>
           <img src={SQLBlueIcon} alt='' className='h-6 w-6' />
           <span className='text-xs text-gray-300'>Query</span>
         </div>
       </button>
-      <button className='px-4 py-1'>
+      <button
+        className='px-4 py-1'
+        onClick={() =>
+          handleAddCell({
+            cell: {
+              name: 'Untitled Cell',
+              cell_type: 'python',
+              input_dataframe_id: undefined,
+              input_dataset_id: undefined,
+              cell_order: undefined,
+            },
+            reference_cell_id: reference_cell_id,
+            cell_order: cell_order,
+          })
+        }
+      >
         <div className='flex flex-col items-center'>
           <img src={PythonBlueIcon} alt='' className='h-6 w-6' />
           <span className='text-xs text-gray-300'>Python</span>
         </div>
       </button>
-      <button className='px-4 py-1'>
+      <button
+        className='px-4 py-1'
+        onClick={() =>
+          handleAddCell({
+            cell: {
+              name: 'Untitled Cell',
+              cell_type: 'markdown',
+              input_dataframe_id: undefined,
+              input_dataset_id: undefined,
+              cell_order: undefined,
+            },
+            reference_cell_id: reference_cell_id,
+            cell_order: cell_order,
+          })
+        }
+      >
         <div className='flex flex-col items-center'>
           <img src={MarkdownBlueIcon} alt='' className='h-6 w-6' />
           <span className='text-xs text-gray-300'>Markdown</span>
@@ -39,19 +97,64 @@ const CellOptionsComponent: React.FC = () => {
       </button>
       {/* Vertical Line */}
       <div className='border-l border-blue-300 h-12 mx-2'></div>{' '}
-      <button className='px-4 py-1'>
+      <button
+        className='px-4 py-1'
+        onClick={() =>
+          handleAddCell({
+            cell: {
+              name: 'Untitled Cell',
+              cell_type: 'table',
+              input_dataframe_id: input_dataframe_id,
+              input_dataset_id: undefined,
+              cell_order: undefined,
+            },
+            reference_cell_id: reference_cell_id,
+            cell_order: cell_order,
+          })
+        }
+      >
         <div className='flex flex-col items-center'>
           <img src={TableBlueIcon} alt='' className='h-6 w-6' />
           <span className='text-xs text-gray-300'>Table</span>
         </div>
       </button>
-      <button className='px-4 py-1'>
+      <button
+        className='px-4 py-1'
+        onClick={() =>
+          handleAddCell({
+            cell: {
+              name: 'Untitled Cell',
+              cell_type: 'chart',
+              input_dataframe_id: input_dataframe_id,
+              input_dataset_id: undefined,
+              cell_order: undefined,
+            },
+            reference_cell_id: reference_cell_id,
+            cell_order: cell_order,
+          })
+        }
+      >
         <div className='flex flex-col items-center'>
           <img src={ChartBlueIcon} alt='' className='h-6 w-6' />
           <span className='text-xs text-gray-300'>Chart</span>
         </div>
       </button>
-      <button className='px-4 py-1'>
+      <button
+        className='px-4 py-1'
+        onClick={() =>
+          handleAddCell({
+            cell: {
+              name: 'Untitled Cell',
+              cell_type: 'pivot',
+              input_dataframe_id: undefined,
+              input_dataset_id: undefined,
+              cell_order: undefined,
+            },
+            reference_cell_id: reference_cell_id,
+            cell_order: cell_order,
+          })
+        }
+      >
         <div className='flex flex-col items-center'>
           <img src={PivotBlueIcon} alt='' className='h-6 w-6' />
           <span className='text-xs text-gray-300'>Pivot</span>

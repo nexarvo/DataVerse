@@ -200,7 +200,7 @@ const CellComponent: React.FC<CellComponentProps> = ({
             </span>
           )}
         </div>
-        <div className='flex'>
+        <div className='flex ml-2 mt-1'>
           {/* Dropdown to select dataset */}
           <select
             className='bg-gray-700 text-white rounded-sm mb-4 w-20 h-5 text-green-300 bg-green-500/[.2] mr-4'

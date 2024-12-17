@@ -82,14 +82,19 @@ const CellTableComponent: React.FC<CellTableComponentProps> = ({
             <tr className='bg-dark'>
               <th className='px-2 text-left text-xs text-gray-400 border border-gray-600'></th>
               {headers?.map((obj: any, index: number) => {
-                const { minWidth } = getDynamicStyle(data[0][index]);
+                const { minWidth } =
+                  data?.length > 0
+                    ? getDynamicStyle(data[0][index])
+                    : { minWidth: 'min-w-[150px]' };
                 return (
                   <th
                     key={obj}
                     className={`px-2 text-left text-xs font-medium text-gray-400 border border-gray-600 ${minWidth}`}
                   >
                     <span className='mr-2'>
-                      {getIconForDataType(data[0][index])}
+                      {data?.length > 0
+                        ? getIconForDataType(data[0][index])
+                        : null}
                     </span>
                     {obj}
                   </th>
