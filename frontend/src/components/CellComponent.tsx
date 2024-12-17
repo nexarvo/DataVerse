@@ -16,6 +16,7 @@ import {
 } from '../app/slices/notebookSlice';
 import { RootState } from '../app/store';
 import CellOptionsComponent from './CellOptionsComponent';
+import CellTableComponent from './CellTableComponent';
 
 interface CellComponentProps {
   datasetsList: any[];
@@ -174,8 +175,8 @@ const CellComponent: React.FC<CellComponentProps> = ({
   };
 
   return (
-    <div className='flex flex-col my-4'>
-      <div className='relative cell p-4 bg-accent border border-blue-200 rounded-md mr-7'>
+    <div className='flex flex-col my-4 w-full'>
+      <div className='relative pt-2 bg-accent border-[0.5px] border-blue-200 rounded-md mr-7'>
         {/* Editable Label */}
         <div className='absolute -top-2 left-4 bg-dark rounded-md text-gray-400 text-xs'>
           {isEditing ? (
@@ -235,7 +236,7 @@ const CellComponent: React.FC<CellComponentProps> = ({
             </optgroup>
           </select>
           {/* Quick filter Option */}
-          <div className='max-w-4xl'>
+          <div className='max-w4xl'>
             <QuickFilter
               cellId={cellMetadata.id}
               dataset_id={getDataSetIdToApplyFilter()[0]}
@@ -248,9 +249,9 @@ const CellComponent: React.FC<CellComponentProps> = ({
             />
           </div>
         </div>
-        <hr className='border-t border-blue-200 mb-8 w-full' />
+        {/* <hr className='border-t border-blue-200 mb-8 w-full' /> */}
         {/* Table */}
-        <TableComponent
+        <CellTableComponent
           headers={viewDataset?.latest_preview?.headers}
           data={viewDataset?.latest_preview?.preview}
         />

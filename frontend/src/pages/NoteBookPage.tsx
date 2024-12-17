@@ -98,7 +98,7 @@ const NotebookPage: React.FC = () => {
   }, [dispatch]);
 
   return (
-    <div className='flex'>
+    <div className='flex bg-dark w-full'>
       <div className='fixed top-0 left-0 w-full z-10 bg-dark border-b border-gray-600'>
         <TopBar isProjectView={true} />
       </div>
@@ -129,9 +129,13 @@ const NotebookPage: React.FC = () => {
 
       {/* Content Section with margin on the left to avoid overlapping */}
       <div
-        className={`flex-1 pt-20 px-4 max-w-full h-full mx-auto bg-dark custom-scrollbar transition-all duration-200 ${
-          isCollapsed ? 'pl-16' : 'pl-20' // Adjust left padding based on collapse state
+        className={`flex-1 pt-20 px-4 overflow-auto bg-dark custom-scrollbar transition-all duration-200 ${
+          isCollapsed ? 'ml-12' : 'ml-12' // Adjust margin-left based on collapse state
         }`}
+        style={{
+          height: 'calc(100vh - 4rem)', // Subtract TopBar height (4rem assumed)
+          marginTop: '4rem', // Match TopBar height
+        }}
       >
         <h1 className='text-4xl font-bold text-gray-400 mb-4'>{title}</h1>
         <div className='flex flex-col items-start'>
@@ -140,9 +144,9 @@ const NotebookPage: React.FC = () => {
             + Add project filter
           </label>
         </div>
-        <div className=''>
+        <div className='w-xl'>
           {cells.map((cell) => (
-            <div>
+            <div className='w-full'>
               <CellComponent
                 key={cell.id}
                 datasetsList={datasets}
