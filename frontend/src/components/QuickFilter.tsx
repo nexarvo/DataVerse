@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import FilterIconBlue from '../assets/filter-icon-blue.svg';
 import FilterIconGray from '../assets/filter-icon-gray.svg';
 import SingleQuickFilter from './SingleQuickFilter';
@@ -8,20 +8,28 @@ import { ApplyTransformationParam } from '../utils/apiTypes';
 import { getDataframeById } from '../services/dataframe';
 
 interface QuickFilterProps {
+  cellId: string;
   dataset_id: string;
   colums: any[];
   data: any[];
   handleDatasetChange: (dataset: any) => void;
+  initialFilters: any[];
+  inputDataType: string;
+  dataType: string;
 }
 
 const QuickFilter: React.FC<QuickFilterProps> = ({
+  cellId,
   dataset_id,
   colums,
   data,
   handleDatasetChange,
+  initialFilters,
+  inputDataType,
+  dataType,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
-  const [filters, setFilters] = useState<number[]>([0]); // Tracks filter indices, starts with one filter
+  const [filters, setFilters] = useState(initialFilters ?? [0]); // Tracks filter indices, starts with one filter
   const [isFilterVisible, setIsFilterVisible] = useState<boolean>(false);
 
   const handleMouseEnter = () => setIsHovered(true);
@@ -29,11 +37,14 @@ const QuickFilter: React.FC<QuickFilterProps> = ({
 
   const handleFilterAdded = async (filter: ApplyTransformationParam) => {
     // Add a new filter
-    setFilters([...filters, filters.length]);
+    setFilters([...filters, filters?.length]);
     const transformation = { type: 'filter', action: 'filter', params: filter };
     try {
       const dataframeId = await applyTransformations(
+        cellId,
         dataset_id,
+        inputDataType,
+        dataType,
         transformation,
       );
 
@@ -60,7 +71,7 @@ const QuickFilter: React.FC<QuickFilterProps> = ({
   return (
     <div className='flex'>
       <div
-        className={`flex flex-row cursor-pointer hover:bg-blue-950 ${filters.length > 1 ? 'bg-blue-950' : isHovered ? 'bg-blue-950' : null} px-2 rounded-sm mr-2`}
+        className={`flex flex-row cursor-pointer hover:bg-blue-950 ${filters?.length > 1 ? 'bg-blue-950' : isHovered ? 'bg-blue-950' : null} px-2 rounded-sm mr-2`}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         onClick={hanleFilterClick}
@@ -68,7 +79,7 @@ const QuickFilter: React.FC<QuickFilterProps> = ({
       >
         <img
           src={
-            filters.length > 1
+            filters?.length > 1
               ? FilterIconBlue
               : isHovered
                 ? FilterIconBlue
@@ -79,7 +90,7 @@ const QuickFilter: React.FC<QuickFilterProps> = ({
         />
         <span
           className={`text-sm ${
-            filters.length > 1
+            filters?.length > 1
               ? 'text-blue-400'
               : isHovered
                 ? 'text-blue-400'
@@ -87,25 +98,25 @@ const QuickFilter: React.FC<QuickFilterProps> = ({
           } py-0`}
         >
           {/* minus 1 because there is a filter which will be used to add new filter */}
-          {filters.length > 1 ? `${filters.length - 1}` : 'Filters'}
+          {filters?.length > 1 ? `${filters?.length - 1}` : 'Filters'}
         </span>
       </div>
 
       {/* Render all filters in a row */}
       <div className='flex flex-wrap overflow-x-auto items-start'>
         {isFilterVisible &&
-          filters.map((filterIndex) => (
+          filters?.map((filterIndex) => (
             <SingleQuickFilter
               key={filterIndex}
               colums={colums}
               data={data}
               handelSetFilter={handleFilterAdded}
               defaultText={
-                !(filters.length === 1) && filterIndex + 1 === filters.length
+                !(filters?.length === 1) && filterIndex + 1 === filters?.length
                   ? '+'
                   : 'Select a column...'
               }
-              shouldShowFilter={filters.length === 1}
+              shouldShowFilter={filters?.length === 1}
             />
           ))}
       </div>

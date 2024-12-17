@@ -1,25 +1,26 @@
-use crate::{models::datasets::Dataset, services::dataset_service::upload_to_supabase};
 use crate::repositories::dataset_repository;
 use crate::utils::jwt::get_user_id_from_request;
+use crate::{models::datasets::Dataset, services::dataset_service::upload_to_supabase};
 use actix_multipart::Multipart;
+use actix_web::error::ErrorInternalServerError;
 use actix_web::{
-    error::InternalError, web::{self, Data}, Error, HttpRequest, HttpResponse
+    error::InternalError,
+    web::{self, Data},
+    Error, HttpRequest, HttpResponse,
 };
 use chrono::Utc;
 use futures_util::StreamExt;
 use mime_guess;
-use sqlx::PgPool;
 use serde_json::{json, Value};
-use actix_web::error::ErrorInternalServerError;
+use sqlx::PgPool;
 use uuid::Uuid;
 
 use super::transformation::apply_transformation;
 
-
 pub async fn upload_file_route(
     mut payload: Multipart,
     pool: web::Data<PgPool>,
-    req: HttpRequest
+    req: HttpRequest,
 ) -> Result<HttpResponse, Error> {
     // Iterate over the multipart fields
     while let Some(field) = payload.next().await {
@@ -64,17 +65,17 @@ pub async fn upload_file_route(
                 let preview = generate_preview(&file_data, &file_name)?;
 
                 let _ = dataset_repository::insert_new_dataset(
-                    &pool, 
-                    file_name, 
-                    file_size, 
-                    file_type, 
-                    dataset_url.clone(), 
-                    Some(Utc::now().naive_utc()), 
-                    uploaded_by, 
-                    None, 
-                    preview
+                    &pool,
+                    file_name,
+                    file_size,
+                    file_type,
+                    dataset_url.clone(),
+                    Some(Utc::now().naive_utc()),
+                    uploaded_by,
+                    None,
+                    preview,
                 )
-                    .await;
+                .await;
 
                 return Ok(HttpResponse::Ok().body(format!("File uploaded: {}", dataset_url)));
             }
@@ -88,24 +89,18 @@ pub async fn upload_file_route(
     Ok(HttpResponse::BadRequest().body("No file uploaded"))
 }
 
-
 pub async fn get_datasets(
     pool: web::Data<PgPool>,
-    _req: HttpRequest
+    _req: HttpRequest,
 ) -> Result<HttpResponse, Error> {
     // Query the datasets
-    let datasets = dataset_repository::get_datasets(&pool)
-        .await
-        .map_err(|e| {
-            // Convert the error to an Actix-compatible error
-            actix_web::error::ErrorInternalServerError(format!(
-                "Failed to retrieve datasets: {}",
-                e
-            ))
-        })?;
+    let datasets = dataset_repository::get_datasets(&pool).await.map_err(|e| {
+        // Convert the error to an Actix-compatible error
+        actix_web::error::ErrorInternalServerError(format!("Failed to retrieve datasets: {}", e))
+    })?;
 
-     // If datasets are empty, return an empty JSON array with type annotation
-     if datasets.is_empty() {
+    // If datasets are empty, return an empty JSON array with type annotation
+    if datasets.is_empty() {
         return Ok(HttpResponse::Ok().json(Vec::<Dataset>::new()));
     }
 
@@ -123,10 +118,7 @@ pub async fn get_dataset_by_id(
         .await
         .map_err(|e| {
             // Convert the error to an Actix-compatible error
-            actix_web::error::ErrorInternalServerError(format!(
-                "Failed to retrieve dataset: {}",
-                e
-            ))
+            actix_web::error::ErrorInternalServerError(format!("Failed to retrieve dataset: {}", e))
         })?;
 
     // Return the dataset as a JSON response
@@ -165,25 +157,39 @@ fn is_file_size_allowed(file_data: &Vec<u8>) -> bool {
 fn generate_preview(file_data: &[u8], file_name: &str) -> Result<Option<Value>, actix_web::Error> {
     if file_name.ends_with(".csv") {
         // CSV Preview
-        let mut rdr = csv::ReaderBuilder::new().has_headers(true).from_reader(file_data);
+        let mut rdr = csv::ReaderBuilder::new()
+            .has_headers(true)
+            .from_reader(file_data);
         let mut preview = Vec::new();
-        let headers = rdr.headers().map_err(|e| {
-            // Error when reading headers
-            ErrorInternalServerError(format!("Failed to read CSV headers: {}", e))
-        })?.clone(); // Clone headers to return them
+        let headers = rdr
+            .headers()
+            .map_err(|e| {
+                // Error when reading headers
+                ErrorInternalServerError(format!("Failed to read CSV headers: {}", e))
+            })?
+            .clone(); // Clone headers to return them
 
         // Read the first 20 data rows
         for (i, result) in rdr.records().enumerate() {
-            if i >= 20 { // Only take the first 20 rows
+            if i >= 20 {
+                // Only take the first 20 rows
                 break;
             }
             match result {
                 Ok(record) => {
                     // Convert each &str element into String and push it to the preview
-                    preview.push(record.iter().map(|s| s.to_string()).collect::<Vec<String>>());
+                    preview.push(
+                        record
+                            .iter()
+                            .map(|s| s.to_string())
+                            .collect::<Vec<String>>(),
+                    );
                 }
                 Err(err) => {
-                    return Err(ErrorInternalServerError(format!("Failed to parse CSV record: {}", err)));
+                    return Err(ErrorInternalServerError(format!(
+                        "Failed to parse CSV record: {}",
+                        err
+                    )));
                 }
             }
         }
@@ -206,7 +212,8 @@ fn generate_preview(file_data: &[u8], file_name: &str) -> Result<Option<Value>, 
 
             // Extract headers from the first object in the array
             if let Some(first_object) = array.get(0) {
-                headers = first_object.as_object()
+                headers = first_object
+                    .as_object()
                     .unwrap_or(&serde_json::Map::new())
                     .keys()
                     .cloned()
@@ -229,5 +236,7 @@ fn generate_preview(file_data: &[u8], file_name: &str) -> Result<Option<Value>, 
     }
 
     // For unsupported formats (e.g., XLSX)
-    Err(ErrorInternalServerError("Unsupported file type for preview generation"))
+    Err(ErrorInternalServerError(
+        "Unsupported file type for preview generation",
+    ))
 }

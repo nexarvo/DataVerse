@@ -10,7 +10,15 @@ import SettingsIcon from '../assets/settings-icon.svg';
 import ArchiveIcon from '../assets/inventory-icon.svg';
 
 import FavoritesLeftNavBar from './favoritesLeftNavBar';
-const LeftNavBar: React.FC = () => {
+
+interface LeftNavBarProps {
+  isCollapsed: boolean;
+  projectView: boolean;
+}
+const LeftNavBar: React.FC<LeftNavBarProps> = ({
+  isCollapsed = false,
+  projectView = false,
+}) => {
   const navItems = [
     { name: 'Home', path: '/home', imgLink: HomeIcon },
     { name: 'Projects', path: '/projects', imgLink: ProjectIcon },
@@ -42,8 +50,10 @@ const LeftNavBar: React.FC = () => {
   ];
 
   return (
-    <div className='h-screen w-64 bg-dark text-white flex flex-col'>
-      <div className='p-4 text-md font-bold'>DataVerse</div>
+    <div
+      className={`${projectView ? 'pt-10' : null} h-screen bg-dark text-white flex flex-col`}
+    >
+      {!projectView && <div className='p-4 text-md font-bold'>DataVerse</div>}
       <nav className='flex-1 p-2'>
         {navItems.map((item) => (
           <Link
@@ -52,21 +62,25 @@ const LeftNavBar: React.FC = () => {
             className='block px-2 py-2 text-sm rounded-sm hover:bg-slate-800 flex items-center space-x-2'
           >
             <img src={item.imgLink} alt={item.name} className='w-4 h-4' />
-            <span className='text-xs'>{item.name}</span>
+            {!isCollapsed && <span className='text-xs'>{item.name}</span>}
           </Link>
         ))}
 
-        <FavoritesLeftNavBar
-          favoritesTitle='FAVORITE PROJECTS'
-          favoriteItems={favoriteProjects}
-        />
+        {!projectView && (
+          <FavoritesLeftNavBar
+            favoritesTitle='FAVORITE PROJECTS'
+            favoriteItems={favoriteProjects}
+          />
+        )}
 
-        <FavoritesLeftNavBar
-          favoritesTitle='FAVORITE DATA'
-          favoriteItems={favoriteDatasets}
-        />
+        {!projectView && (
+          <FavoritesLeftNavBar
+            favoritesTitle='FAVORITE DATA'
+            favoriteItems={favoriteDatasets}
+          />
+        )}
       </nav>
-      <div className='p-2 border-t border-gray-700 w-60'>
+      <div className='p-2 border-t border-gray-700'>
         {footerNavItems.map((item) => (
           <Link
             key={item.name}
@@ -74,7 +88,7 @@ const LeftNavBar: React.FC = () => {
             className='block px-2 py-2 text-sm rounded-sm hover:bg-slate-800 flex items-center space-x-2'
           >
             <img src={item.imgLink} alt={item.name} className='w-4 h-4' />
-            <span className='text-xs'>{item.name}</span>
+            {!isCollapsed && <span className='text-xs'>{item.name}</span>}
           </Link>
         ))}
       </div>

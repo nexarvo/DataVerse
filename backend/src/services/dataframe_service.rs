@@ -1,14 +1,16 @@
 use log::{error, info};
+use polars::error::PolarsError;
+use polars::io::parquet::ParquetReader;
 use polars::{frame::DataFrame, io::SerReader};
 use reqwest::Client;
 use std::{error::Error, fs::File};
 use tokio::fs;
 use uuid::Uuid;
-use polars::io::parquet::ParquetReader;
 
-pub async fn save_dataframe_to_supabase(parquet_file_path: String) -> Result<(Uuid, String), Box<dyn Error>> {
-    let dataframe_id = Uuid::new_v4(); // Generate a unique ID for the DataFrame
-
+pub async fn save_dataframe_to_supabase(
+    dataframe_id: Uuid,
+    parquet_file_path: String,
+) -> Result<(Uuid, String), Box<dyn Error>> {
     let supabase_url =
         std::env::var("SUPABASE_URL").map_err(|_| "Environment variable SUPABASE_URL not found")?;
     let supabase_api_key = std::env::var("SUPABASE_API_KEY")
@@ -19,7 +21,6 @@ pub async fn save_dataframe_to_supabase(parquet_file_path: String) -> Result<(Uu
     let parquet_data = fs::read(&parquet_file_path).await?; // Read the Parquet file
     let object_path = format!("{}.parquet", dataframe_id);
 
-    // Define the endpoint URL
     let endpoint = format!(
         "{}/storage/v1/object/{}/{}",
         supabase_url, bucket_name, object_path
@@ -33,13 +34,14 @@ pub async fn save_dataframe_to_supabase(parquet_file_path: String) -> Result<(Uu
         .post(&endpoint)
         .bearer_auth(supabase_api_key)
         .header("Content-Type", "application/octet-stream")
+        .header("x-upsert", "true")
         .body(parquet_data)
         .send()
         .await?;
 
     // Check the response status
     if response.status().is_success() {
-        // Step 3: Clean up temporary file
+        // Clean up temporary file
         let _ = fs::remove_file(&parquet_file_path).await;
 
         Ok((dataframe_id, object_path))
@@ -51,7 +53,10 @@ pub async fn save_dataframe_to_supabase(parquet_file_path: String) -> Result<(Uu
 }
 
 // Utility function to download the Parquet file from Supabase
-pub async fn download_parquet_from_supabase(dataframe_id: Uuid, file_url: &str) -> Result<String, Box<dyn std::error::Error>> {
+pub async fn download_parquet_from_supabase(
+    dataframe_id: Uuid,
+    file_url: &str,
+) -> Result<String, Box<dyn std::error::Error>> {
     info!("Downloading parquet file");
 
     let supabase_url =
@@ -76,9 +81,11 @@ pub async fn download_parquet_from_supabase(dataframe_id: Uuid, file_url: &str) 
 }
 
 // Utility function to read the Parquet file into a Polars DataFrame
-pub fn read_parquet_to_dataframe(file_path: &str) -> Result<DataFrame, Box<dyn std::error::Error>> {
+pub fn read_parquet_to_dataframe<P: AsRef<std::path::Path>>(
+    file_path: P,
+) -> Result<DataFrame, Box<dyn std::error::Error>> {
     info!("Read parquet file to dataframe");
-    let file = File::open(file_path)?;
+    let file = File::open(file_path.as_ref())?;
     let df = ParquetReader::new(file).finish()?;
     info!("Successfully read parquet file to dataframe");
     Ok(df)

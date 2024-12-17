@@ -1,0 +1,2 @@
+ALTER TABLE dataframe
+ADD COLUMN name TEXT;

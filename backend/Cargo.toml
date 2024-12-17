@@ -39,3 +39,4 @@ calamine = "0.26.1"
 polars = { version = "0.25", features = ["json", "serde", "parquet"] } 
 duckdb = { version = "1.1.1", features = ["bundled"] }
 lazy_static = "1.4"
+anyhow = "1.0.94"

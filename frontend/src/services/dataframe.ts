@@ -14,8 +14,22 @@ export const getDataframeById = async (params: GetDataframeByIdParam) => {
     return response.data;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
+    throw new Error(error.response?.data?.message || 'Error getting dataframe');
+  }
+};
+
+export const getDataframesMetadata = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/dataframes-metadata`, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    return response.data;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } catch (error: any) {
     throw new Error(
-      error.response?.data?.message || 'Error applying transformations',
+      error.response?.data?.message || 'Error getting dataframes metadata',
     );
   }
 };

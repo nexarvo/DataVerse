@@ -9,7 +9,7 @@ type Dataset = {
   file_name: string;
   file_type: string;
   row_count: number;
-  latest_preview: DatasetPreview;
+  latest_preview?: DatasetPreview;
   page: number;
   page_size: number;
   total_rows: number;

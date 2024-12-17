@@ -1,19 +1,35 @@
-use sqlx::{PgPool, Error};
+use sqlx::{Error, PgPool};
 use uuid::Uuid;
 
 use crate::models::dataframe::DataFrame;
 
-pub async fn save_dataframe(pool: &PgPool, dataframe_id: Uuid, transformation_id: Uuid, dataframe_duckdb_reference: String) -> Result<DataFrame, sqlx::Error> {
-    let dataframe = DataFrame::new(dataframe_id, transformation_id, dataframe_duckdb_reference);
-    
+pub async fn save_dataframe(
+    pool: &PgPool,
+    dataframe_id: Uuid,
+    transformation_id: Uuid,
+    dataframe_duckdb_reference: String,
+) -> Result<DataFrame, sqlx::Error> {
+    // Create the DataFrame instance
+    let dataframe = DataFrame::new(
+        dataframe_id,
+        Some("table_result".to_string()),
+        transformation_id,
+        dataframe_duckdb_reference.clone(),
+    );
+
+    // Perform an insert or update
     sqlx::query!(
         r#"
         INSERT INTO dataframe (id, transformation_id, dataframe_duckdb_reference)
         VALUES ($1, $2, $3)
+        ON CONFLICT (id) 
+        DO UPDATE SET
+            transformation_id = EXCLUDED.transformation_id,
+            dataframe_duckdb_reference = EXCLUDED.dataframe_duckdb_reference
         "#,
         dataframe.id,
         dataframe.transformation_id,
-        dataframe.dataframe_duckdb_reference
+        dataframe_duckdb_reference
     )
     .execute(pool)
     .await?;
@@ -21,20 +37,31 @@ pub async fn save_dataframe(pool: &PgPool, dataframe_id: Uuid, transformation_id
     Ok(dataframe)
 }
 
-pub async fn get_dataframe_by_id(
-    pool: &PgPool,
-    id: Uuid,
-) -> Result<Option<DataFrame>, Error> {
+pub async fn get_dataframe_by_id(pool: &PgPool, id: Uuid) -> Result<Option<DataFrame>, Error> {
     let dataframe = sqlx::query_as!(
         DataFrame,
         r#"
-        SELECT id, transformation_id, dataframe_duckdb_reference, created_at, created_by, updated_at, updated_by
+        SELECT id, name, transformation_id, dataframe_duckdb_reference, created_at, created_by, updated_at, updated_by
         FROM dataframe
         WHERE id = $1
         "#,
         id
     )
     .fetch_optional(pool)
+    .await?;
+
+    Ok(dataframe)
+}
+
+pub async fn get_dataframes(pool: &PgPool) -> Result<Vec<DataFrame>, Error> {
+    let dataframe = sqlx::query_as!(
+        DataFrame,
+        r#"
+        SELECT id, name, transformation_id, dataframe_duckdb_reference, created_at, created_by, updated_at, updated_by
+        FROM dataframe
+        "#
+    )
+    .fetch_all(pool)
     .await?;
 
     Ok(dataframe)

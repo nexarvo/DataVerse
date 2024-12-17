@@ -1,30 +1,30 @@
 mod db;
+mod dto;
 mod errors;
 mod models;
+mod repositories;
 mod routes;
 mod services;
 mod utils;
-mod repositories;
-mod dto;
+use crate::db::establish_connection_pool;
 use crate::routes::auth::auth_routes;
 use crate::routes::dataset::file_routes;
 use actix_cors::Cors;
 use actix_web::http::header;
-use db::duck_db_migrations::run_duckdb_migrations;
-use routes::dataframe::dataframe_routes;
-use crate::db::establish_connection_pool;
 use actix_web::{
     middleware,
     web::{self, Data},
     App, HttpServer, Responder,
 };
+use db::duck_db_migrations::run_duckdb_migrations;
 use dotenv::dotenv;
 use log::info;
+use routes::{cell::cell_routes, dataframe::dataframe_routes};
 use sqlx::PgPool;
-use utils::token_verification_middleware::AuthMiddleware;
 use std::env;
 use std::rc::Rc;
 use std::sync::Mutex;
+use utils::token_verification_middleware::AuthMiddleware;
 
 async fn health_check(pool: Data<PgPool>) -> impl Responder {
     if sqlx::query("SELECT 1")
@@ -47,7 +47,6 @@ async fn main() -> std::io::Result<()> {
         .unwrap_or_else(|_| "8080".to_string())
         .parse()
         .expect("PORT must be a valid number");
-
 
     let pool = establish_connection_pool().await;
 
@@ -76,7 +75,7 @@ async fn main() -> std::io::Result<()> {
             .configure(auth_routes)
             .configure(file_routes)
             .configure(dataframe_routes)
-
+            .configure(cell_routes)
     })
     .bind(("127.0.0.1", port))?
     .run()

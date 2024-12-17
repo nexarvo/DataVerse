@@ -2,17 +2,12 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "cargo build",
+      "label": "Watch and Run",
       "type": "shell",
       "command": "cargo",
-      "args": ["build"],
-      "group": {
-        "kind": "build",
-        "isDefault": true
-      },
-      "problemMatcher": ["$rustc"],
-      "detail": "Generated task to run cargo build",
-      "cwd": "${workspaceFolder}/backend" // Ensure the cwd is set to /backend
+      "args": ["watch", "-x", "run"],
+      "isBackground": true,
+      "problemMatcher": []
     }
   ]
 }

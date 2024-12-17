@@ -1,59 +1,180 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { getDatasetById } from '../services/datasets';
 import TableComponent from './TableComponent';
-import Dataset from '../utils/types';
 import DownRightIcon from '../assets/down-right-icon.svg';
 import CommentsIcon from '../assets/comment-icon.svg';
 import MenuIcon from '../assets/menu-icon.svg';
 import QuickFilter from './QuickFilter';
-import PaginationRow from './PaginationRow';
+import { getDataframeById } from '../services/dataframe';
+import { useDispatch, useSelector } from 'react-redux';
+import {
+  updateCellLabel,
+  setCellSelectedDatasetId,
+  setCellViewDataset,
+  toggleCellEditing,
+} from '../app/slices/notebookSlice';
+import { RootState } from '../app/store';
 
 interface CellComponentProps {
   datasetsList: any[];
+  cellMetadata: any;
+  notifyDatasetChange: (cellId: string) => void;
+  dataframeMetadataList: any[];
 }
 
-const CellComponent: React.FC<CellComponentProps> = ({ datasetsList }) => {
-  const [label, setLabel] = useState('Table 1'); // Default label
-  const [isEditing, setIsEditing] = useState(false);
-  const [dataset, setDataset] = useState<Dataset | null>(null);
-  const [selectedDatasetId, setSelectedDatasetId] = useState<string>(
-    datasetsList.length > 0 ? datasetsList[0].id : null,
+const CellComponent: React.FC<CellComponentProps> = ({
+  datasetsList,
+  cellMetadata,
+  notifyDatasetChange,
+  dataframeMetadataList,
+}) => {
+  const dispatch = useDispatch();
+
+  // Dynamically fetch the state for this specific cell using cellId
+  const cellState = useSelector((state: RootState) =>
+    state.notebook.cells.find((cell) => cell.id === cellMetadata.id),
   );
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize] = useState(20);
-  const [totalRows, setTotalRows] = useState(dataset?.total_rows || 0);
+  const {
+    label = '',
+    isEditing = false,
+    viewDataset = null,
+    selectedDatasetId = '',
+  } = cellState || {}; // Default to an empty object if cellState is undefined
 
   const handleLabelChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setLabel(e.target.value);
+    dispatch(
+      updateCellLabel({ cellId: cellMetadata.id, label: e.target.value }),
+    );
   };
 
   const handleBlur = () => {
-    setIsEditing(false);
+    dispatch(toggleCellEditing({ cellId: cellMetadata }));
   };
 
   const handleDatasetChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedDatasetId(e.target.value);
+    dispatch(
+      setCellSelectedDatasetId({
+        cellId: cellMetadata.id,
+        selectedDatasetId: e.target.value,
+      }),
+    );
   };
 
   const handleDataChange = (dataset: any) => {
-    setDataset(dataset);
-    setTotalRows(dataset?.total_rows || 0);
+    dispatch(
+      setCellViewDataset({ cellId: cellMetadata.id, viewDataset: dataset }),
+    );
+    notifyDatasetChange(cellMetadata.id);
+  };
+
+  const fetchDataset = async (datasetId: string) => {
+    try {
+      const id = datasetId.replace(/^dataframe-|^dataset-/, '');
+
+      console.log('DatasetID: ', datasetId);
+
+      if (datasetId.startsWith('dataframe-')) {
+        console.log('fetch dataframe: ', datasetId);
+        return await getDataframeById({
+          dataframe_id: id,
+          page: 1,
+          page_size: 20,
+        });
+      } else {
+        console.log('fetch dataset: ', datasetId);
+        return await getDatasetById(id);
+      }
+    } catch (error) {
+      console.error('Error fetching dataset:', error);
+      return null;
+    }
+  };
+
+  const fetchViewData = async () => {
+    try {
+      let dataset;
+
+      if (selectedDatasetId) {
+        // Fetch dataset based on selectedDatasetId
+        dataset = await fetchDataset(selectedDatasetId);
+      } else if (cellMetadata.result_dataframe) {
+        // Fallback: Load using result_dataframe
+        dataset = await getDataframeById({
+          dataframe_id: cellMetadata.result_dataframe.id,
+          page: 1,
+          page_size: 20,
+        });
+      } else if (cellMetadata.input_dataset?.id) {
+        // Fallback: Load using input_dataset
+        dataset = await getDatasetById(cellMetadata.input_dataset.id);
+      } else if (cellMetadata.input_dataframe) {
+        // Fallback: Load using input_dataframe
+        dataset = await getDataframeById({
+          dataframe_id: cellMetadata.input_dataframe.id,
+          page: 1,
+          page_size: 20,
+        });
+      }
+
+      dispatch(
+        setCellViewDataset({ cellId: cellMetadata.id, viewDataset: dataset }),
+      );
+    } catch (error) {
+      console.error('Error fetching view dataset:', error);
+    }
   };
 
   useEffect(() => {
-    const fetchDatasets = async () => {
-      try {
-        const dataset = await getDatasetById(selectedDatasetId);
-        setDataset(dataset);
-      } catch (error) {
-        console.error('Error fetching dataset:', error);
-      }
-    };
+    fetchViewData();
+  }, [
+    selectedDatasetId,
+    cellMetadata.result_dataframe,
+    cellMetadata.input_dataset,
+    cellMetadata.input_dataframe,
+  ]);
 
-    fetchDatasets();
-  }, [selectedDatasetId]);
+  useEffect(() => {
+    if (cellMetadata.input_dataframe) {
+      dispatch(
+        setCellSelectedDatasetId({
+          cellId: cellMetadata.id,
+          selectedDatasetId: `dataframe-${cellMetadata.input_dataframe}`,
+        }),
+      );
+    } else if (cellMetadata?.input_dataset?.id) {
+      dispatch(
+        setCellSelectedDatasetId({
+          cellId: cellMetadata.id,
+          selectedDatasetId: `dataset-${cellMetadata?.input_dataset?.id}`,
+        }),
+      );
+    }
+  }, [cellMetadata]);
+
+  const getDataSetIdToApplyFilter = () => {
+    if (cellMetadata.input_dataframe)
+      return [cellMetadata.input_dataframe.id, 'dataframe'];
+    else if (cellMetadata.result_dataframe)
+      return [cellMetadata.result_dataframe.id, 'dataframe'];
+    else {
+      return [
+        selectedDatasetId.replace(/^dataframe-|^dataset-/, ''),
+        selectedDatasetId.startsWith('dataframe-') ? 'dataframe' : 'dataset',
+      ];
+    }
+  };
+
+  const getInputDataType = () => {
+    if (cellMetadata.input_dataset) return 'dataset';
+    else if (cellMetadata.input_dataframe) return 'dataframe';
+    else {
+      return selectedDatasetId.startsWith('dataframe-')
+        ? 'dataframe'
+        : 'dataset';
+    }
+  };
 
   return (
     <div className='flex flex-col mb-8'>
@@ -76,7 +197,9 @@ const CellComponent: React.FC<CellComponentProps> = ({ datasetsList }) => {
             />
           ) : (
             <span
-              onClick={() => setIsEditing(true)}
+              onClick={() =>
+                dispatch(toggleCellEditing({ cellId: cellMetadata.id }))
+              }
               className='cursor-pointer'
               title='Click to edit'
             >
@@ -91,34 +214,55 @@ const CellComponent: React.FC<CellComponentProps> = ({ datasetsList }) => {
             onChange={handleDatasetChange}
             value={selectedDatasetId || ''}
           >
-            {datasetsList.map((dataset) => (
-              <option
-                key={dataset.id}
-                value={dataset.id}
-                className='text-green-200'
-              >
-                {dataset.file_name}
-              </option>
-            ))}
+            {/* Group for Dataframe Metadata */}
+            {dataframeMetadataList.length > 0 ? (
+              <optgroup label='DATAFRAMES'>
+                {dataframeMetadataList?.map((metadata: any) => (
+                  <option
+                    key={`dataframe-${metadata.id}`}
+                    value={`dataframe-${metadata.id}`}
+                    className='text-blue-200'
+                  >
+                    {metadata.name}
+                  </option>
+                ))}
+              </optgroup>
+            ) : null}
+
+            {/* Group for Datasets */}
+            <optgroup label='DATASETS'>
+              {datasetsList.map((dataset) => (
+                <option
+                  key={`dataset-${dataset.id}`}
+                  value={`dataset-${dataset.id}`}
+                  className='text-green-200'
+                >
+                  {dataset.file_name}
+                </option>
+              ))}
+            </optgroup>
           </select>
           {/* Quick filter Option */}
           <div className='max-w-4xl'>
             <QuickFilter
-              dataset_id={selectedDatasetId}
-              colums={dataset?.latest_preview.headers}
-              data={dataset?.latest_preview.preview}
+              cellId={cellMetadata.id}
+              dataset_id={getDataSetIdToApplyFilter()[0]}
+              colums={viewDataset?.latest_preview?.headers}
+              data={viewDataset?.latest_preview?.preview}
               handleDatasetChange={handleDataChange}
+              initialFilters={cellMetadata.input_dataframe?.transformations}
+              dataType={getDataSetIdToApplyFilter()[1]}
+              inputDataType={getInputDataType()}
             />
           </div>
         </div>
         <hr className='border-t border-blue-200 mb-8 w-full' />
         {/* Table */}
         <TableComponent
-          headers={dataset?.latest_preview.headers}
-          data={dataset?.latest_preview.preview}
+          headers={viewDataset?.latest_preview?.headers}
+          data={viewDataset?.latest_preview?.preview}
         />
       </div>
-      <PaginationRow dataset={dataset} />
       <div className='flex items-center'>
         <img src={DownRightIcon} alt='$' className='h-3 w-3 mt-2 ml-2' />
         <span className='text-blue-400 text-xs mt-3 ml-2 bg-blue-950 px-1 rounded-sm'>

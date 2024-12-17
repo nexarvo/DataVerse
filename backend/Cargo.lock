@@ -605,6 +605,7 @@ dependencies = [
  "actix-cors",
  "actix-multipart",
  "actix-web",
+ "anyhow",
  "bcrypt",
  "calamine",
  "chrono",

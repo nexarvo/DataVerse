@@ -4,13 +4,21 @@ import ApplyTransformationApiType from '../utils/apiTypes';
 const API_URL = import.meta.env.VITE_API_URL;
 
 export const applyTransformations = async (
-  dataset_id: string,
+  cell_id: string,
+  datasetId: string,
+  input_data_type: string,
+  dataType: string,
   transformation: ApplyTransformationApiType,
 ) => {
   try {
     const response = await axios.post(
-      `${API_URL}/datasets/${dataset_id}/apply-transformation`,
-      transformation,
+      `${API_URL}/cells/${cell_id}/apply-transformation`,
+      {
+        dataset_id: datasetId,
+        input_data_type: input_data_type,
+        data_type: dataType,
+        transformation,
+      },
       {
         headers: {
           'Content-Type': 'application/json',
