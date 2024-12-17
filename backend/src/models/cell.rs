@@ -11,6 +11,7 @@ pub struct Cell {
     pub input_dataframe_id: Option<Uuid>,
     pub input_dataset_id: Option<Uuid>,
     pub result_dataframe_id: Option<Uuid>,
+    pub cell_type: Option<String>,
     pub created_at: Option<NaiveDateTime>,
     pub created_by: Option<Uuid>,
     pub updated_at: Option<NaiveDateTime>,
@@ -25,6 +26,8 @@ impl Cell {
         input_dataframe_id: Option<Uuid>,
         input_dataset_id: Option<Uuid>,
         result_dataframe_id: Option<Uuid>,
+        cell_type: Option<String>,
+        name: Option<String>,
         created_by: Option<Uuid>,
         updated_by: Option<Uuid>,
     ) -> Self {
@@ -33,7 +36,7 @@ impl Cell {
 
         Self {
             id,
-            name: None, // Name can be set later
+            name,
             first_transformation_id,
             input_dataframe_id,
             input_dataset_id,
@@ -42,6 +45,7 @@ impl Cell {
             created_by,
             updated_at,
             updated_by,
+            cell_type,
         }
     }
 

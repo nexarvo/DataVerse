@@ -367,6 +367,7 @@ pub async fn get_cell_metadata_by_id(
         SELECT
             c.id,
             c.name,
+            c.cell_type,
             c.input_dataframe_id,
             c.input_dataset_id,
             c.result_dataframe_id,
@@ -394,6 +395,7 @@ pub async fn get_cell_metadata_by_id(
     let cell = Cell {
         id: cell_row.id,
         name: cell_row.name,
+        cell_type: cell_row.cell_type,
         input_dataframe_id: cell_row.input_dataframe_id,
         input_dataset_id: cell_row.input_dataset_id,
         result_dataframe_id: cell_row.result_dataframe_id,
@@ -405,4 +407,40 @@ pub async fn get_cell_metadata_by_id(
     };
 
     Ok(Some(cell)) // Return the Cell wrapped in Some
+}
+
+pub async fn create_cell(pool: &PgPool, cell: &Cell) -> Result<Cell, Error> {
+    // Insert the cell into the database
+    let inserted_cell = sqlx::query_as!(
+        Cell,
+        r#"
+        INSERT INTO cell (
+            id, name, first_transformation_id, input_dataframe_id, 
+            input_dataset_id, result_dataframe_id, cell_type, 
+            created_at, created_by, updated_at, updated_by
+        ) 
+        VALUES (
+            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+        )
+        RETURNING 
+            id, name, first_transformation_id, input_dataframe_id, 
+            input_dataset_id, result_dataframe_id, cell_type, 
+            created_at, created_by, updated_at, updated_by
+        "#,
+        cell.id,
+        cell.name,
+        cell.first_transformation_id,
+        cell.input_dataframe_id,
+        cell.input_dataset_id,
+        cell.result_dataframe_id,
+        cell.cell_type,
+        cell.created_at,
+        cell.created_by,
+        cell.updated_at,
+        cell.updated_by,
+    )
+    .fetch_one(pool)
+    .await?;
+
+    Ok(inserted_cell)
 }

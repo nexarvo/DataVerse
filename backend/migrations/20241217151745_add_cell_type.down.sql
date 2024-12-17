@@ -1,0 +1,2 @@
+ALTER TABLE cell
+DROP COLUMN cell_type TEXT;

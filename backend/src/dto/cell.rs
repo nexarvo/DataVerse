@@ -3,7 +3,10 @@ use uuid::Uuid;
 
 use serde::{Deserialize, Serialize};
 
-use super::{dataframe::DataframeMetadataDTO, datasets::DatasetMetadataDTO, transformation::TransformationDTO};
+use super::{
+    dataframe::DataframeMetadataDTO, datasets::DatasetMetadataDTO,
+    transformation::TransformationDTO,
+};
 
 #[derive(Serialize)]
 pub struct CellDTO {
@@ -16,4 +19,12 @@ pub struct CellDTO {
     pub created_by: Option<Uuid>,
     pub updated_at: Option<NaiveDateTime>,
     pub updated_by: Option<Uuid>,
+}
+
+#[derive(Deserialize)]
+pub struct CreateCellRequest {
+    pub name: Option<String>,
+    pub input_dataframe_id: Option<Uuid>,
+    pub input_dataset_id: Option<Uuid>,
+    pub cell_type: Option<String>,
 }
