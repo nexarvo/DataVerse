@@ -1,4 +1,8 @@
-use crate::{dto::cell::CreateCellRequest, models::cell::Cell, repositories::cell_repository};
+use crate::{
+    dto::cell::{AddCellToPositionRequest, CreateCellRequest},
+    models::cell::Cell,
+    repositories::cell_repository,
+};
 use actix_web::{
     web::{self},
     Error, HttpRequest, HttpResponse,
@@ -52,6 +56,7 @@ pub async fn create_cell(
         payload.input_dataset_id,
         None,
         payload.cell_type.clone(),
+        payload.cell_order.clone(),
         payload.name.clone(),
         None,
         None,
@@ -67,11 +72,48 @@ pub async fn create_cell(
     Ok(HttpResponse::Ok().json(created_cell))
 }
 
+pub async fn add_cell_at_position(
+    pool: web::Data<PgPool>,
+    payload: web::Json<AddCellToPositionRequest>,
+) -> Result<HttpResponse, Error> {
+    info!("Adding a new cell");
+    let new_cell = Cell::new(
+        Uuid::new_v4(),
+        None,
+        payload.cell.input_dataframe_id,
+        payload.cell.input_dataset_id,
+        None,
+        payload.cell.cell_type.clone(),
+        payload.cell.cell_order.clone(),
+        payload.cell.name.clone(),
+        None,
+        None,
+    );
+
+    let created_cell = cell_repository::add_cell_at_position(
+        &pool,
+        payload.reference_cell_id,
+        payload.cell_order,
+        new_cell,
+    )
+    .await
+    .map_err(|e| {
+        warn!("Failed to add cell into database: {}", e);
+        actix_web::error::ErrorInternalServerError(format!("Failed to add cell: {}", e))
+    })?;
+
+    Ok(HttpResponse::Ok().json(created_cell))
+}
+
 pub fn cell_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/cells")
             .route("", web::get().to(get_cells))
             .route("", web::post().to(create_cell))
+            .route(
+                "/add-cell-to-position",
+                web::post().to(add_cell_at_position),
+            )
             .route("/{id}", web::get().to(get_cell_by_id))
             .route(
                 "/{cell_id}/apply-transformation",

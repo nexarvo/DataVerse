@@ -27,4 +27,12 @@ pub struct CreateCellRequest {
     pub input_dataframe_id: Option<Uuid>,
     pub input_dataset_id: Option<Uuid>,
     pub cell_type: Option<String>,
+    pub cell_order: Option<i32>,
+}
+
+#[derive(Deserialize)]
+pub struct AddCellToPositionRequest {
+    pub cell: CreateCellRequest,
+    pub reference_cell_id: Option<Uuid>,
+    pub cell_order: i32,
 }

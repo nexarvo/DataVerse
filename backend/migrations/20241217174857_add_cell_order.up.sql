@@ -1,0 +1,2 @@
+ALTER TABLE cell
+ADD COLUMN cell_order INTEGER;

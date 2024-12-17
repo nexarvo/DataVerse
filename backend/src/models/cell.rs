@@ -12,6 +12,7 @@ pub struct Cell {
     pub input_dataset_id: Option<Uuid>,
     pub result_dataframe_id: Option<Uuid>,
     pub cell_type: Option<String>,
+    pub cell_order: Option<i32>,
     pub created_at: Option<NaiveDateTime>,
     pub created_by: Option<Uuid>,
     pub updated_at: Option<NaiveDateTime>,
@@ -27,6 +28,7 @@ impl Cell {
         input_dataset_id: Option<Uuid>,
         result_dataframe_id: Option<Uuid>,
         cell_type: Option<String>,
+        cell_order: Option<i32>,
         name: Option<String>,
         created_by: Option<Uuid>,
         updated_by: Option<Uuid>,
@@ -46,6 +48,7 @@ impl Cell {
             updated_at,
             updated_by,
             cell_type,
+            cell_order,
         }
     }
 

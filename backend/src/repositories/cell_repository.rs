@@ -1,3 +1,4 @@
+use chrono::NaiveDateTime;
 use sqlx::{Error, PgPool};
 use uuid::Uuid;
 
@@ -66,6 +67,8 @@ pub async fn get_cells(pool: &PgPool) -> Result<Vec<CellDTO>, Error> {
         SELECT 
             c.id,
             c.name,
+            c.cell_type,
+            c.cell_order,
             c.input_dataframe_id,
             c.input_dataset_id,
             c.result_dataframe_id,
@@ -74,7 +77,7 @@ pub async fn get_cells(pool: &PgPool) -> Result<Vec<CellDTO>, Error> {
             c.updated_at,
             c.updated_by
         FROM cell c
-        ORDER BY c.created_at ASC
+        ORDER BY c.cell_order ASC
         "#
     )
     .fetch_all(pool)
@@ -222,6 +225,8 @@ pub async fn get_cell_by_id(pool: &PgPool, cell_id: uuid::Uuid) -> Result<CellDT
             c.input_dataframe_id,
             c.input_dataset_id,
             c.result_dataframe_id,
+            c.cell_type,
+            c.cell_order,
             c.created_at,
             c.created_by,
             c.updated_at,
@@ -368,6 +373,7 @@ pub async fn get_cell_metadata_by_id(
             c.id,
             c.name,
             c.cell_type,
+            c.cell_order,
             c.input_dataframe_id,
             c.input_dataset_id,
             c.result_dataframe_id,
@@ -404,6 +410,7 @@ pub async fn get_cell_metadata_by_id(
         updated_at: cell_row.updated_at,
         updated_by: cell_row.updated_by,
         first_transformation_id: cell_row.first_transformation_id,
+        cell_order: cell_row.cell_order,
     };
 
     Ok(Some(cell)) // Return the Cell wrapped in Some
@@ -416,15 +423,15 @@ pub async fn create_cell(pool: &PgPool, cell: &Cell) -> Result<Cell, Error> {
         r#"
         INSERT INTO cell (
             id, name, first_transformation_id, input_dataframe_id, 
-            input_dataset_id, result_dataframe_id, cell_type, 
+            input_dataset_id, result_dataframe_id, cell_type, cell_order, 
             created_at, created_by, updated_at, updated_by
         ) 
         VALUES (
-            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
         )
         RETURNING 
             id, name, first_transformation_id, input_dataframe_id, 
-            input_dataset_id, result_dataframe_id, cell_type, 
+            input_dataset_id, result_dataframe_id, cell_type, cell_order,
             created_at, created_by, updated_at, updated_by
         "#,
         cell.id,
@@ -434,10 +441,89 @@ pub async fn create_cell(pool: &PgPool, cell: &Cell) -> Result<Cell, Error> {
         cell.input_dataset_id,
         cell.result_dataframe_id,
         cell.cell_type,
+        cell.cell_order,
         cell.created_at,
         cell.created_by,
         cell.updated_at,
         cell.updated_by,
+    )
+    .fetch_one(pool)
+    .await?;
+
+    Ok(inserted_cell)
+}
+
+pub async fn add_cell_at_position(
+    pool: &PgPool,
+    reference_cell_id: Option<Uuid>, // The reference cell for insertion (if any)
+    cell_order: i32,                 // The desired order of the new cell
+    new_cell: Cell,                  // The new cell to be added
+) -> Result<Cell, sqlx::Error> {
+    // Fetch all cells and sort by cell_order to determine position
+    let cells: Vec<Cell> = sqlx::query_as!(Cell, "SELECT * FROM cell ORDER BY cell_order")
+        .fetch_all(pool)
+        .await?;
+
+    // Determine the appropriate order for the new cell
+    let new_cell_order = if let Some(reference_id) = reference_cell_id {
+        // Find the reference cell's order
+        let reference_cell = cells.iter().find(|c| c.id == reference_id);
+        if let Some(reference) = reference_cell {
+            let reference_order = reference.cell_order.unwrap_or(0); // Default to 0 if `cell_order` is None
+
+            // If inserting after the reference cell
+            if Some(cell_order) == reference.cell_order {
+                // If user gives the same order, calculate an average for new cell
+                let next_cell = cells
+                    .iter()
+                    .find(|c| c.cell_order == Some(reference_order + 1));
+                if let Some(next) = next_cell {
+                    let next_order = next.cell_order.unwrap_or(0); // Default to 0 if `cell_order` is None
+
+                    let avg_order = (reference_order + next_order) / 2; // Now you can safely add the values
+                    avg_order
+                } else {
+                    // If there is no next cell, insert it as the next after the reference
+                    reference.cell_order.unwrap_or(0) + 1
+                }
+            } else {
+                cell_order // The order specified by the user
+            }
+        } else {
+            // If no reference cell, insert at the provided order or the end
+            cell_order
+        }
+    } else {
+        // If no reference cell, insert at the provided order or the end
+        cell_order
+    };
+
+    // Update cell orders of cells that will be moved down (in case of new cell before/after)
+    sqlx::query!(
+        "UPDATE cell SET cell_order = cell_order + 1 WHERE cell_order >= $1",
+        new_cell_order
+    )
+    .execute(pool)
+    .await?;
+
+    // Insert the new cell at the correct order and return it as a `Cell` type
+    let inserted_cell: Cell = sqlx::query_as!(
+        Cell, 
+        "INSERT INTO cell (id, name, input_dataframe_id, input_dataset_id, cell_type, cell_order, first_transformation_id, result_dataframe_id, created_at, created_by, updated_at, updated_by)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) 
+         RETURNING id, name, input_dataframe_id, input_dataset_id, cell_type, cell_order, first_transformation_id, result_dataframe_id, created_at, created_by, updated_at, updated_by",
+        new_cell.id,
+        new_cell.name,
+        new_cell.input_dataframe_id,
+        new_cell.input_dataset_id,
+        new_cell.cell_type,
+        new_cell_order,
+        Option::<Uuid>::None, // first_transformation_id
+        Option::<Uuid>::None, // result_dataframe_id
+        Option::<NaiveDateTime>::None, // created_at
+        Option::<Uuid>::None, // created_by
+        Option::<NaiveDateTime>::None, // updated_at
+        Option::<Uuid>::None  // updated_by
     )
     .fetch_one(pool)
     .await?;

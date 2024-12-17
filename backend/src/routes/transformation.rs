@@ -111,6 +111,7 @@ pub async fn apply_transformation(
             None,
             None,
             None,
+            None,
         ),
         Ok(datasets::DataType::DataFrame) => Cell::new(
             cell_id,
@@ -118,6 +119,7 @@ pub async fn apply_transformation(
             Some(transformation.dataset_id),
             None,
             Some(dataframe.id),
+            None,
             None,
             None,
             None,
