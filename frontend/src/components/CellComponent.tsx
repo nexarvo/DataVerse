@@ -15,6 +15,7 @@ import {
   toggleCellEditing,
 } from '../app/slices/notebookSlice';
 import { RootState } from '../app/store';
+import CellOptionsComponent from './CellOptionsComponent';
 
 interface CellComponentProps {
   datasetsList: any[];
@@ -73,17 +74,13 @@ const CellComponent: React.FC<CellComponentProps> = ({
     try {
       const id = datasetId.replace(/^dataframe-|^dataset-/, '');
 
-      console.log('DatasetID: ', datasetId);
-
       if (datasetId.startsWith('dataframe-')) {
-        console.log('fetch dataframe: ', datasetId);
         return await getDataframeById({
           dataframe_id: id,
           page: 1,
           page_size: 20,
         });
       } else {
-        console.log('fetch dataset: ', datasetId);
         return await getDatasetById(id);
       }
     } catch (error) {
@@ -177,12 +174,7 @@ const CellComponent: React.FC<CellComponentProps> = ({
   };
 
   return (
-    <div className='flex flex-col mb-8'>
-      <div className='flex flex-col justify-center items-center place-self-end'>
-        <img src={CommentsIcon} alt='$' className='h-4 w-4 mt-9 ml-2' />
-        <img src={MenuIcon} alt='$' className='h-4 w-4 mt-2 ml-2 self-end' />
-      </div>
-
+    <div className='flex flex-col my-4'>
       <div className='relative cell p-4 bg-accent border border-blue-200 rounded-md mr-7'>
         {/* Editable Label */}
         <div className='absolute -top-2 left-4 bg-dark rounded-md text-gray-400 text-xs'>

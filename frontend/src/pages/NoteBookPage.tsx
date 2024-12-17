@@ -17,9 +17,17 @@ import {
 import { getDataframesMetadata } from '../services/dataframe';
 import LeftNavBar from '../components/LeftNavBar';
 import TopBar from '../components/TopBar';
+import CellOptionsComponent from '../components/CellOptionsComponent';
 
 const NotebookPage: React.FC = () => {
   const dispatch = useDispatch();
+
+  const [selectedCellId, setSelectedCellId] = useState<string | null>(null);
+
+  const handleLineClick = (cellId: string) => {
+    // Toggle visibility of options for the clicked cell
+    setSelectedCellId((prevId) => (prevId === cellId ? null : cellId)); // Deselect if clicked again
+  };
 
   // State to track if the LeftNavBar is collapsed
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -134,22 +142,32 @@ const NotebookPage: React.FC = () => {
         </div>
         <div className=''>
           {cells.map((cell) => (
-            <CellComponent
-              key={cell.id}
-              datasetsList={datasets}
-              cellMetadata={cell}
-              notifyDatasetChange={handleDatasetChange}
-              dataframeMetadataList={dataframeMetadataList}
-            />
+            <div>
+              <CellComponent
+                key={cell.id}
+                datasetsList={datasets}
+                cellMetadata={cell}
+                notifyDatasetChange={handleDatasetChange}
+                dataframeMetadataList={dataframeMetadataList}
+              />
+              {selectedCellId !== cell.id && (
+                <div
+                  className='line-container'
+                  onClick={() => handleLineClick(cell.id)}
+                >
+                  <div className='line'></div>
+                  <div className='plus-sign'>+</div>
+                  <div className='line'></div>
+                </div>
+              )}
+              {selectedCellId === cell.id && (
+                <div className='flex justify-center items-center'>
+                  <CellOptionsComponent />
+                </div>
+              )}
+            </div>
           ))}
         </div>
-        {/* Add button to create new cell */}
-        <button
-          className='mt-4 p-2 bg-blue-500 text-white rounded-md'
-          onClick={() => dispatch(addCell())}
-        >
-          Add Cell
-        </button>
       </div>
     </div>
   );

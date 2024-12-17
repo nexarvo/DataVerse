@@ -155,3 +155,78 @@ select:focus + .dropdown-toggle .selected-option {
 select:focus + .dropdown-toggle .dropdown-icon {
   color: #63b3ed; /* Change color for the dropdown icon */
 }
+
+/* CellWithLine.css */
+
+/* Container for each cell */
+.cell-container {
+  font-size: 20px;
+  margin-bottom: 30px;
+  text-align: center;
+}
+
+/* CellWithLine.css */
+
+/* Container for each cell */
+.cell-container {
+  font-size: 20px;
+  margin-bottom: 30px;
+  text-align: center;
+}
+
+/* Container for the line and the '+' sign */
+.line-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 10px;
+  position: relative;
+  width: 100%;
+}
+
+/* Style for the line with fading and thinning effect */
+.line {
+  height: 1.5px;
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    #64748b 50%,
+    transparent 100%
+  );
+  width: 100%;
+  position: relative;
+  margin: 0 10px;
+}
+
+/* Add a pseudo-element for the fading effect */
+.line::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    #64748b 50%,
+    transparent 100%
+  );
+  transform: translateX(-50%);
+  /* Apply thinning effect */
+  transition: width 0.2s ease-in-out;
+}
+
+/* Style for the plus sign */
+.plus-sign {
+  margin: 0 10px;
+  font-size: 24px;
+  position: relative;
+  z-index: 1;
+  color: #64748b; /* Set the color of the plus sign */
+}
+
+/* Optional hover effect for line thinning */
+.line-container:hover .line::before {
+  width: 20%;
+}
