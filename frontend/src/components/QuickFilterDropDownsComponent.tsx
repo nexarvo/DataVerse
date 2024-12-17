@@ -7,9 +7,16 @@ import {
   SELECT_COLUMN_FILTER_PLACEHOLDER,
   SELECT_OPERATION_FILTER_PLACEHOLDER,
   SELECT_VALUE_FILTER_PLACEHOLDER,
-  NUMBER_FILTER_OPERATIONS,
+  FILTER_OPERATIONS,
   ENTER_VALUE_FILTER_PLACEHOLDER,
 } from '../utils/consts';
+import { faCheck, faCalendar } from '@fortawesome/free-solid-svg-icons';
+import {
+  isNumber,
+  isBoolean,
+  isDate,
+  isString,
+} from '../utils/columnDataTypeHerlper';
 
 interface QuickFilterDropDownsComponentProps {
   colums: any[];
@@ -73,6 +80,28 @@ const QuickFilterDropDownsComponent: React.FC<
     };
   }, [selectedColumn, selectedOperation, value, setFilter]);
 
+  const getFilterOperations = () => {
+    if (selectedColumn === null) {
+      return FILTER_OPERATIONS.general;
+    }
+    const selectedColumnIndex = colums.findIndex((x) => x === selectedColumn);
+    const value = data[0]?.[selectedColumnIndex];
+
+    if (isNumber(value)) {
+      return FILTER_OPERATIONS.number;
+    } else if (isBoolean(value)) {
+      return FILTER_OPERATIONS.boolean;
+    } else if (isDate(value)) {
+      return FILTER_OPERATIONS.date;
+    } else if (isString(value)) {
+      return FILTER_OPERATIONS.text;
+    } else if (Array.isArray(value)) {
+      return FILTER_OPERATIONS.list;
+    } else {
+      return FILTER_OPERATIONS.general; // Fallback for mixed or unknown types
+    }
+  };
+
   return (
     <div className='flex flex-col items-center justify-center bg-gray-300 border border-gray-400 rounded-md shadow-lg mt-2 py-4'>
       {/* Columns drop down */}
@@ -85,7 +114,7 @@ const QuickFilterDropDownsComponent: React.FC<
         shouldRenderIcon={true}
       />
       <DropDown
-        dataList={NUMBER_FILTER_OPERATIONS}
+        dataList={getFilterOperations()}
         defaultText={SELECT_OPERATION_FILTER_PLACEHOLDER}
         isDropDownOpen={false}
         onChange={handleOperationChange}
