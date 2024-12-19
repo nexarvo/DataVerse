@@ -42,7 +42,7 @@ pub async fn load_dataset(
         .await?;
 
     let file_path = match datasets::DataType::from_str(dataset_type) {
-        Ok(datasets::DataType::Dataset) => download_dataset(&dataset_url, dataset_type).await?,
+        Ok(datasets::DataType::Dataset) => download_dataset(&dataset_url).await?,
         Ok(datasets::DataType::DataFrame) => {
             download_parquet_from_supabase(dataset_id, &dataset_url)
                 .await?

@@ -74,13 +74,13 @@ const CellTableComponent: React.FC<CellTableComponentProps> = ({
   };
 
   return (
-    <div className='w-full overflow-hidden border-t-[0.5px] border-gray-600 bg-accent'>
+    <div className='w-full overflow-hidden border-t-px border-fourth bg-accent'>
       {/* Table Container with fixed height */}
       <div className='max-h-80 overflow-y-auto custom-scrollbar'>
         <table className='w-full table-auto table-layout-auto'>
           <thead className='bg-gray-800 sticky top-0'>
             <tr className='bg-dark'>
-              <th className='px-2 text-left text-xs text-gray-400 border border-gray-600'></th>
+              <th className='px-2 py-0 text-left text-xs text-text-primary border-t border-r border-fourth'></th>
               {headers?.map((obj: any, index: number) => {
                 const { minWidth } =
                   data?.length > 0
@@ -89,7 +89,7 @@ const CellTableComponent: React.FC<CellTableComponentProps> = ({
                 return (
                   <th
                     key={obj}
-                    className={`px-2 text-left text-xs font-medium text-gray-400 border border-gray-600 ${minWidth}`}
+                    className={`px-2 py-0 text-left text-xs font-medium text-text-secondary border border-fourth ${minWidth}`}
                   >
                     <span className='mr-2'>
                       {data?.length > 0
@@ -106,7 +106,7 @@ const CellTableComponent: React.FC<CellTableComponentProps> = ({
             {data?.map((item: any, index: number) => (
               <tr key={index} className='bg-accent'>
                 {/* Row Number */}
-                <td className='px-4 text-sm text-center text-gray-400 border border-gray-600 bg-dark'>
+                <td className='px-4 text-sm text-center text-text-secondary border-t border-r border-fourth bg-dark'>
                   {index + 1}
                 </td>
                 {item.map((obj: any, idx: number) => {
@@ -114,7 +114,7 @@ const CellTableComponent: React.FC<CellTableComponentProps> = ({
                   return (
                     <td
                       key={`${index}-${idx}`}
-                      className={`px-2 text-xs text-gray-300 border border-gray-600 hover:bg-third ${alignment} whitespace-nowrap`}
+                      className={`px-2 text-xs text-text-primary border border-fourth hover:bg-third ${alignment} whitespace-nowrap`}
                     >
                       {formatValue(obj)}
                     </td>

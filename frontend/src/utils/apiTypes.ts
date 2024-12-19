@@ -30,4 +30,13 @@ export type AddCellToPositionParam = {
   cell_order: number;
 };
 
+export type GenerateChartParam = {
+  dataset_id: string;
+  is_dataset: boolean;
+  chart_type: string;
+  x_column: string;
+  y_column: string;
+  aggregation: string;
+};
+
 export default ApplyTransformationApiType;

@@ -1,42 +1,55 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useEffect } from 'react';
-import { getDatasetById } from '../services/datasets';
-import TableComponent from './TableComponent';
+import React, { useEffect, useState } from 'react';
+import { getDatasetById } from '../../services/datasets';
+import TableComponent from '../TableComponent';
 import DownRightIcon from '../assets/down-right-icon.svg';
 import CommentsIcon from '../assets/comment-icon.svg';
 import MenuIcon from '../assets/menu-icon.svg';
-import QuickFilter from './QuickFilter';
-import { getDataframeById } from '../services/dataframe';
+import QuickFilter from '../QuickFilter';
+import { getDataframeById } from '../../services/dataframe';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   updateCellLabel,
   setCellSelectedDatasetId,
   setCellViewDataset,
   toggleCellEditing,
-} from '../app/slices/notebookSlice';
-import { RootState } from '../app/store';
-import CellOptionsComponent from './CellOptionsComponent';
-import CellTableComponent from './CellTableComponent';
-import { CellState } from '../app/slices/cellSlice';
-import { CellTypes } from '../utils/consts';
-import TableCellComponent from './TableCellComponent';
-import BarChart from './charts/EChartComponent';
-import ChartCellComponent from './charts/ChartCellComponent';
+} from '../../app/slices/notebookSlice';
+import { RootState } from '../../app/store';
+import CellOptionsComponent from '../CellOptionsComponent';
+import CellTableComponent from '../CellTableComponent';
+import EChartComponent from './EChartComponent';
+import ChartCellInputBar from './ChartCellInputBar';
+import { GenerateChartParam } from '../../utils/apiTypes';
+import { generateChart } from '../../services/chartService';
 
-interface CellComponentProps {
+interface ChartCellComponentProps {
   datasetsList: any[];
-  cellMetadata: CellState;
+  cellMetadata: any;
   notifyDatasetChange: (cellId: string) => void;
   dataframeMetadataList: any[];
 }
 
-const CellComponent: React.FC<CellComponentProps> = ({
+const ChartCellComponent: React.FC<ChartCellComponentProps> = ({
   datasetsList,
   cellMetadata,
   notifyDatasetChange,
   dataframeMetadataList,
 }) => {
   const dispatch = useDispatch();
+
+  let [chartData, setChartData] = useState<any>(null);
+  let [selectedChartInput, setSelectedChartInput] =
+    useState<GenerateChartParam>();
+
+  const handleGenerateChartData = async (data: GenerateChartParam) => {
+    try {
+      const generatedChart = await generateChart(data);
+      setChartData(generatedChart);
+      setSelectedChartInput(data);
+    } catch (error) {
+      console.error('Error generating chart:', error);
+    }
+  };
 
   // Dynamically fetch the state for this specific cell using cellId
   const cellState = useSelector((state: RootState) =>
@@ -180,34 +193,92 @@ const CellComponent: React.FC<CellComponentProps> = ({
   };
 
   return (
-    <div className='flex flex-col my-4 w-full'>
-      <div className='relative pt-2 bg-accent border-[0.5px] border-fourth rounded-md mr-7'>
-        {cellMetadata.cell_type === CellTypes.table ? (
-          <TableCellComponent
-            datasetsList={datasetsList}
-            cellMetadata={cellMetadata}
-            notifyDatasetChange={notifyDatasetChange}
-            dataframeMetadataList={dataframeMetadataList}
+    <div>
+      {/* Editable Label */}
+      <div className='absolute -top-2 left-4 bg-dark rounded-md text-gray-400 text-xs'>
+        {isEditing ? (
+          <input
+            type='text'
+            value={label}
+            onChange={handleLabelChange}
+            onBlur={handleBlur}
+            className='bg-transparent border-none text-white focus:outline-none'
+            autoFocus
           />
         ) : (
-          <ChartCellComponent
-            datasetsList={datasetsList}
-            cellMetadata={cellMetadata}
-            notifyDatasetChange={notifyDatasetChange}
-            dataframeMetadataList={dataframeMetadataList}
-          />
+          <span
+            onClick={() =>
+              dispatch(toggleCellEditing({ cellId: cellMetadata.id }))
+            }
+            className='cursor-pointer'
+            title='Click to edit'
+          >
+            {label}
+          </span>
         )}
       </div>
-      {cellMetadata.cell_type === CellTypes.table && (
-        <div className='flex items-center'>
-          <img src={DownRightIcon} alt='$' className='h-3 w-3 mt-2 ml-2' />
-          <span className='text-blue-400 text-xs mt-3 ml-2 bg-blue-950 px-1 rounded-sm'>
-            table_result
-          </span>
+      <div className='flex ml-2 mt-1'>
+        {/* Dropdown to select dataset */}
+        <select
+          className='bg-gray-700 text-white rounded-sm mb-4 w-20 h-5 text-green-300 bg-green-500/[.2] mr-4'
+          onChange={handleDatasetChange}
+          value={selectedDatasetId || ''}
+        >
+          {/* Group for Dataframe Metadata */}
+          {dataframeMetadataList.length > 0 ? (
+            <optgroup label='DATAFRAMES'>
+              {dataframeMetadataList?.map((metadata: any) => (
+                <option
+                  key={`dataframe-${metadata.id}`}
+                  value={`dataframe-${metadata.id}`}
+                  className='text-blue-200'
+                >
+                  {metadata.name}
+                </option>
+              ))}
+            </optgroup>
+          ) : null}
+
+          {/* Group for Datasets */}
+          <optgroup label='DATASETS'>
+            {datasetsList.map((dataset) => (
+              <option
+                key={`dataset-${dataset.id}`}
+                value={`dataset-${dataset.id}`}
+                className='text-green-200'
+              >
+                {dataset.file_name}
+              </option>
+            ))}
+          </optgroup>
+        </select>
+        {/* Quick filter Option */}
+        <div className='max-w4xl'>
+          <QuickFilter
+            cellId={cellMetadata.id}
+            dataset_id={getDataSetIdToApplyFilter()[0]}
+            colums={viewDataset?.latest_preview?.headers}
+            data={viewDataset?.latest_preview?.preview}
+            handleDatasetChange={handleDataChange}
+            initialFilters={cellMetadata.input_dataframe?.transformations}
+            dataType={getDataSetIdToApplyFilter()[1]}
+            inputDataType={getInputDataType()}
+          />
         </div>
-      )}
+      </div>
+      <hr className='border-t border-fourth w-full' />
+      <div className='flex'>
+        <ChartCellInputBar
+          onSubmit={handleGenerateChartData}
+          cellMetadata={cellMetadata}
+        />
+        <EChartComponent
+          chartData={chartData}
+          chartType={selectedChartInput?.chart_type}
+        />
+      </div>
     </div>
   );
 };
 
-export default CellComponent;
+export default ChartCellComponent;

@@ -51,7 +51,7 @@ const LeftNavBar: React.FC<LeftNavBarProps> = ({
 
   return (
     <div
-      className={`${projectView ? 'pt-10' : null} h-screen bg-dark text-white flex flex-col`}
+      className={`${projectView ? 'pt-10' : null} h-screen bg-accent text-text-primary flex flex-col`}
     >
       {!projectView && <div className='p-4 text-md font-bold'>DataVerse</div>}
       <nav className='flex-1 p-2'>
@@ -80,7 +80,7 @@ const LeftNavBar: React.FC<LeftNavBarProps> = ({
           />
         )}
       </nav>
-      <div className='p-2 border-t border-gray-700'>
+      <div className='p-2 border-t border-fourth'>
         {footerNavItems.map((item) => (
           <Link
             key={item.name}

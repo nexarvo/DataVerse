@@ -17,20 +17,15 @@ import {
 import { RootState } from '../app/store';
 import CellOptionsComponent from './CellOptionsComponent';
 import CellTableComponent from './CellTableComponent';
-import { CellState } from '../app/slices/cellSlice';
-import { CellTypes } from '../utils/consts';
-import TableCellComponent from './TableCellComponent';
-import BarChart from './charts/EChartComponent';
-import ChartCellComponent from './charts/ChartCellComponent';
 
-interface CellComponentProps {
+interface TableCellComponentProps {
   datasetsList: any[];
-  cellMetadata: CellState;
+  cellMetadata: any;
   notifyDatasetChange: (cellId: string) => void;
   dataframeMetadataList: any[];
 }
 
-const CellComponent: React.FC<CellComponentProps> = ({
+const TableCellComponent: React.FC<TableCellComponentProps> = ({
   datasetsList,
   cellMetadata,
   notifyDatasetChange,
@@ -180,34 +175,87 @@ const CellComponent: React.FC<CellComponentProps> = ({
   };
 
   return (
-    <div className='flex flex-col my-4 w-full'>
-      <div className='relative pt-2 bg-accent border-[0.5px] border-fourth rounded-md mr-7'>
-        {cellMetadata.cell_type === CellTypes.table ? (
-          <TableCellComponent
-            datasetsList={datasetsList}
-            cellMetadata={cellMetadata}
-            notifyDatasetChange={notifyDatasetChange}
-            dataframeMetadataList={dataframeMetadataList}
+    <div>
+      {/* Editable Label */}
+      <div className='absolute -top-2 left-4 bg-dark rounded-md text-text-secondary text-xs'>
+        {isEditing ? (
+          <input
+            type='text'
+            value={label}
+            onChange={handleLabelChange}
+            onBlur={handleBlur}
+            className='bg-transparent border-none text-white focus:outline-none'
+            autoFocus
           />
         ) : (
-          <ChartCellComponent
-            datasetsList={datasetsList}
-            cellMetadata={cellMetadata}
-            notifyDatasetChange={notifyDatasetChange}
-            dataframeMetadataList={dataframeMetadataList}
-          />
+          <span
+            onClick={() =>
+              dispatch(toggleCellEditing({ cellId: cellMetadata.id }))
+            }
+            className='cursor-pointer'
+            title='Click to edit'
+          >
+            {label}
+          </span>
         )}
       </div>
-      {cellMetadata.cell_type === CellTypes.table && (
-        <div className='flex items-center'>
-          <img src={DownRightIcon} alt='$' className='h-3 w-3 mt-2 ml-2' />
-          <span className='text-blue-400 text-xs mt-3 ml-2 bg-blue-950 px-1 rounded-sm'>
-            table_result
-          </span>
+      <div className='flex ml-2 mt-1'>
+        {/* Dropdown to select dataset */}
+        <select
+          className='bg-gray-700 text-white rounded-sm mb-4 w-20 h-5 text-green-300 bg-green-500/[.2] mr-4'
+          onChange={handleDatasetChange}
+          value={selectedDatasetId || ''}
+        >
+          {/* Group for Dataframe Metadata */}
+          {dataframeMetadataList.length > 0 ? (
+            <optgroup label='DATAFRAMES'>
+              {dataframeMetadataList?.map((metadata: any) => (
+                <option
+                  key={`dataframe-${metadata.id}`}
+                  value={`dataframe-${metadata.id}`}
+                  className='text-blue-200'
+                >
+                  {metadata.name}
+                </option>
+              ))}
+            </optgroup>
+          ) : null}
+
+          {/* Group for Datasets */}
+          <optgroup label='DATASETS'>
+            {datasetsList.map((dataset) => (
+              <option
+                key={`dataset-${dataset.id}`}
+                value={`dataset-${dataset.id}`}
+                className='text-green-200'
+              >
+                {dataset.file_name}
+              </option>
+            ))}
+          </optgroup>
+        </select>
+        {/* Quick filter Option */}
+        <div className='max-w4xl'>
+          <QuickFilter
+            cellId={cellMetadata.id}
+            dataset_id={getDataSetIdToApplyFilter()[0]}
+            colums={viewDataset?.latest_preview?.headers}
+            data={viewDataset?.latest_preview?.preview}
+            handleDatasetChange={handleDataChange}
+            initialFilters={cellMetadata.input_dataframe?.transformations}
+            dataType={getDataSetIdToApplyFilter()[1]}
+            inputDataType={getInputDataType()}
+          />
         </div>
-      )}
+      </div>
+      {/* <hr className='border-t border-blue-200 mb-8 w-full' /> */}
+      {/* Table */}
+      <CellTableComponent
+        headers={viewDataset?.latest_preview?.headers}
+        data={viewDataset?.latest_preview?.preview}
+      />
     </div>
   );
 };
 
-export default CellComponent;
+export default TableCellComponent;

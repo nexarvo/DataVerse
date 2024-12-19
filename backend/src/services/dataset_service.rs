@@ -51,10 +51,7 @@ pub async fn upload_to_supabase(
     }
 }
 
-pub async fn download_dataset(
-    dataset_url: &str,
-    dataset_type: &str,
-) -> Result<PathBuf, Box<dyn std::error::Error>> {
+pub async fn download_dataset(dataset_url: &str) -> Result<PathBuf, Box<dyn std::error::Error>> {
     info!(
         "Starting to download dataset for dataset_url: {}",
         dataset_url

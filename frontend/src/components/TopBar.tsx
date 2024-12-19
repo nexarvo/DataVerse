@@ -9,7 +9,7 @@ interface TopBarProps {
 const TopBar: React.FC<TopBarProps> = ({ isProjectView = false }) => {
   return (
     <div
-      className={`${isProjectView ? 'h-12' : 'h-16'} bg-dark flex items-center justify-between px-2`}
+      className={`${isProjectView ? 'h-12' : 'h-16'} bg-accent flex items-center justify-between px-2`}
     >
       {' '}
       {isProjectView && (
@@ -51,7 +51,7 @@ const TopBar: React.FC<TopBarProps> = ({ isProjectView = false }) => {
           </button>
         )}
         {isProjectView ? (
-          <button className='px-2 py-1 bg-green-glass border border-green-800 text-green-300 shadow-md backdrop-blur-md rounded-sm hover:bg-green-hover transition'>
+          <button className='px-2 py-0.5 bg-green-glass border border-green-800 text-green-300 shadow-md backdrop-blur-md rounded-sm hover:bg-green-hover transition'>
             <div className='flex items-center'>
               <span className='text-sm'>Share</span>
             </div>
@@ -105,7 +105,7 @@ const TopBar: React.FC<TopBarProps> = ({ isProjectView = false }) => {
             </div>
           </button>
         )}
-        <button className='pr-2 py-1 bg-blue-glass border border-gray-400 text-gray-300 shadow-md backdrop-blur-md rounded-sm hover:bg-green-hover transition'>
+        <button className='pr-2 py-0.5 bg-blue-glass border border-gray-400 text-gray-300 shadow-md backdrop-blur-md rounded-sm hover:bg-green-hover transition'>
           <div className='flex items-center'>
             <span className='text-sm ml-1'>Publish app</span>
 

@@ -21,6 +21,7 @@ import LeftNavBar from '../components/LeftNavBar';
 import TopBar from '../components/TopBar';
 import CellOptionsComponent from '../components/CellOptionsComponent';
 import { AddCellToPositionParam } from '../utils/apiTypes';
+import TableCellComponent from '../components/TableCellComponent';
 
 const NotebookPage: React.FC = () => {
   const dispatch = useDispatch();
@@ -111,7 +112,7 @@ const NotebookPage: React.FC = () => {
 
   return (
     <div className='flex bg-dark w-full'>
-      <div className='fixed top-0 left-0 w-full z-10 bg-dark border-b border-gray-600'>
+      <div className='fixed top-0 left-0 w-full z-10 bg-dark border-b border-fourth'>
         <TopBar isProjectView={true} />
       </div>
       {/* Fixed LeftNavBar */}
@@ -132,7 +133,7 @@ const NotebookPage: React.FC = () => {
 
       {/* Vertical Divider with Gray Color */}
       <div
-        className={`transition-all duration-200 w-0.5 bg-gray-600`}
+        className={`transition-all duration-200 w-px bg-fourth`}
         style={{
           height: '100vh', // Ensures the divider spans the full height of the viewport
           marginLeft: isCollapsed ? '3rem' : '15rem', // Adjust based on collapsed state
@@ -149,10 +150,12 @@ const NotebookPage: React.FC = () => {
           marginTop: '4rem', // Match TopBar height
         }}
       >
-        <h1 className='text-4xl font-bold text-gray-400 mb-4'>{title}</h1>
+        <h1 className='text-4xl font-bold text-text-primary mb-4'>{title}</h1>
         <div className='flex flex-col items-start'>
-          <span className='text-gray-400 text-sm mb-4'>Add Description...</span>
-          <label className='text-gray-400 text-xs mb-11'>
+          <span className='text-text-secondary text-sm mb-4'>
+            Add Description...
+          </span>
+          <label className='text-text-accent text-xs mb-11'>
             + Add project filter
           </label>
         </div>
