@@ -3,4 +3,5 @@ pub mod cell;
 pub mod charts;
 pub mod dataframe;
 pub mod dataset;
+pub mod sql_cell;
 pub mod transformation;

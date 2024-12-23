@@ -20,6 +20,7 @@ use db::duck_db_migrations::run_duckdb_migrations;
 use dotenv::dotenv;
 use log::info;
 use routes::charts::charts_routes;
+use routes::sql_cell::sql_query_routes;
 use routes::{cell::cell_routes, dataframe::dataframe_routes};
 use sqlx::PgPool;
 use std::env;
@@ -78,6 +79,7 @@ async fn main() -> std::io::Result<()> {
             .configure(dataframe_routes)
             .configure(cell_routes)
             .configure(charts_routes)
+            .configure(sql_query_routes)
     })
     .bind(("127.0.0.1", port))?
     .run()
