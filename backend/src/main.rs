@@ -1,4 +1,5 @@
 mod db;
+mod disk_layer;
 mod dto;
 mod errors;
 mod models;
