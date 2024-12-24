@@ -40,3 +40,6 @@ polars = { version = "0.25", features = ["json", "serde", "parquet"] }
 lazy_static = "1.4"
 anyhow = "1.0.94"
 duckdb = { version = "1.1.1", features = ["bundled"] }
+aes-gcm = "0.10"
+base64 = "0.13.0"
+bytes = "1"           # For handling byte streams

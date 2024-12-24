@@ -1,3 +1,4 @@
+use crate::disk_layer::file_handler::write_dataset;
 use crate::repositories::dataset_repository;
 use crate::utils::jwt::get_user_id_from_request;
 use crate::{models::datasets::Dataset, services::dataset_service::upload_to_supabase};
@@ -10,6 +11,7 @@ use actix_web::{
 };
 use chrono::Utc;
 use futures_util::StreamExt;
+use log::error;
 use mime_guess;
 use serde_json::{json, Value};
 use sqlx::PgPool;
@@ -59,23 +61,35 @@ pub async fn upload_file_route(
 
                 let dataset_url = upload_to_supabase(file_name.clone(), file_data.clone()).await?;
 
-                let uploaded_by = get_user_id_from_request(&req);
+                // let uploaded_by = get_user_id_from_request(&req);
 
                 // Generate preview (entire dataset as JSON)
                 let preview = generate_preview(&file_data, &file_name)?;
 
-                let _ = dataset_repository::insert_new_dataset(
+                let dataset = dataset_repository::insert_new_dataset(
                     &pool,
                     file_name,
                     file_size,
                     file_type,
                     dataset_url.clone(),
                     Some(Utc::now().naive_utc()),
-                    uploaded_by,
+                    None,
                     None,
                     preview,
                 )
-                .await;
+                .await
+                .map_err(|e| {
+                    error!(
+                        "Failed to insert dataset into the database: {}",
+                        e.to_string()
+                    );
+                    InternalError::new(e, actix_web::http::StatusCode::INTERNAL_SERVER_ERROR)
+                })?;
+
+                // Store the dataset in the disk
+                if let Some(dataset_id) = dataset.id {
+                    write_dataset(&format!("dataset-{}", dataset_id), &file_data).await?;
+                }
 
                 return Ok(HttpResponse::Ok().body(format!("File uploaded: {}", dataset_url)));
             }

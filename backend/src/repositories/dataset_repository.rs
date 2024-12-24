@@ -1,6 +1,6 @@
 use chrono::NaiveDateTime;
 use serde_json::Value;
-use sqlx::{PgPool, Error, Row};
+use sqlx::{Error, PgPool, Row};
 use uuid::Uuid;
 
 use crate::models::datasets::Dataset;
@@ -14,14 +14,16 @@ pub async fn insert_new_dataset(
     upload_time: Option<NaiveDateTime>,
     uploaded_by: Option<Uuid>,
     row_count: Option<i32>,
-    latest_preview: Option<Value>
+    latest_preview: Option<Value>,
 ) -> Result<Dataset, Error> {
-    let row = sqlx::query!(
+    // Insert the dataset into the database and return the number of affected rows
+    let query_result = sqlx::query!(
         r#"
         INSERT INTO datasets (id, file_name, file_size, file_type, dataset_url, upload_time, uploaded_by, row_count, latest_preview)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        RETURNING id, file_name, file_size, file_type, dataset_url, upload_time, uploaded_by, row_count, latest_preview
         "#,
-        Some(Uuid::new_v4()),
+        Some(Uuid::new_v4()), // Generate new UUID for the `id`
         file_name,
         file_size,
         file_type,
@@ -31,29 +33,27 @@ pub async fn insert_new_dataset(
         row_count,
         latest_preview
     )
-    .fetch_one(pool) // Fetch the newly inserted row
+    .fetch_one(pool) // Fetch the row returned by `RETURNING`
     .await?;
 
     // Map the result into a Dataset struct
     let dataset = Dataset {
-        id: row.get("id"),
-        file_name: row.get("file_name"),
-        file_size: row.get("file_size"),
-        file_type: row.get("file_type"),
-        dataset_url: row.get("dataset_url"),
-        upload_time: row.get("upload_time"),
-        uploaded_by: row.get("uploaded_by"),
-        row_count: row.get("row_count"),
-        latest_preview: row.get("latest_preview"),
+        id: Some(query_result.id),
+        file_name: query_result.file_name,
+        file_size: query_result.file_size,
+        file_type: query_result.file_type,
+        dataset_url: query_result.dataset_url,
+        upload_time: query_result.upload_time,
+        uploaded_by: query_result.uploaded_by,
+        row_count: query_result.row_count,
+        latest_preview: query_result.latest_preview,
     };
 
     // Return the inserted dataset
     Ok(dataset)
 }
 
-pub async fn get_datasets(
-    pool: &PgPool
-) -> Result<Vec<Dataset>, Error> {
+pub async fn get_datasets(pool: &PgPool) -> Result<Vec<Dataset>, Error> {
     let datasets = sqlx::query_as!(
         Dataset,
         r#"
@@ -68,10 +68,7 @@ pub async fn get_datasets(
     Ok(datasets)
 }
 
-pub async fn get_dataset_by_id(
-    pool: &PgPool,
-    id: Uuid,
-) -> Result<Option<Dataset>, Error> {
+pub async fn get_dataset_by_id(pool: &PgPool, id: Uuid) -> Result<Option<Dataset>, Error> {
     let dataset = sqlx::query_as!(
         Dataset,
         r#"

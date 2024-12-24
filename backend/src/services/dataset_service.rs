@@ -4,12 +4,12 @@ use std::{error::Error, path::PathBuf};
 use tokio::fs;
 use uuid::Uuid;
 
-use crate::db::duck_db_connection::DUCKDB_CONN;
-
 pub async fn upload_to_supabase(
     file_name: String,
     data: Vec<u8>,
 ) -> Result<String, Box<dyn Error>> {
+    info!("Starting to upload file: {}", file_name);
+
     // Retrieve Supabase configuration from environment variables
     let supabase_url =
         std::env::var("SUPABASE_URL").map_err(|_| "Environment variable SUPABASE_URL not found")?;
@@ -43,6 +43,7 @@ pub async fn upload_to_supabase(
             "{}/storage/v1/object/public/{}/{}",
             supabase_url, bucket_name, file_name
         );
+        info!("Successfully uploaded file: {}", file_url);
         Ok(file_url)
     } else {
         // Return an error if the upload failed
