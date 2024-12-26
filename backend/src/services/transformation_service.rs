@@ -1,7 +1,12 @@
+use std::fmt::format;
 use std::fs::File;
+use std::io::Cursor;
 use std::str::FromStr;
 
+use crate::disk_layer::file_handler::read_dataset;
 use crate::dto::datasets;
+use crate::models::dataframe::DataFrame as DataFrameModel;
+use crate::models::datasets::Dataset;
 use crate::services::dataframe_service::{
     download_parquet_from_supabase, read_parquet_to_dataframe,
 };
@@ -24,6 +29,24 @@ pub async fn load_dataset(
 ) -> Result<polars::prelude::DataFrame, Box<dyn std::error::Error>> {
     info!("Starting to load dataset for dataset_id: {}", dataset_id);
 
+    // Step 1: Check if the dataset is already available locally
+    let local_file_path = match datasets::DataType::from_str(dataset_type) {
+        Ok(datasets::DataType::Dataset) => format!("dataset-{}", dataset_id),
+        Ok(datasets::DataType::DataFrame) => format!("dataframe-{}", dataset_id),
+        Err(_) => {
+            return Err(Box::new(actix_web::error::ErrorBadRequest(
+                "Invalid data type",
+            )));
+        }
+    };
+
+    let file_data = read_dataset(&local_file_path).await?;
+    let dataframe = ParquetReader::new(Cursor::new(file_data.clone())).finish()?;
+
+    if !file_data.is_empty() {
+        info!("Dataset loaded from local file: {}", local_file_path);
+        return Ok(dataframe);
+    }
     let query = match datasets::DataType::from_str(dataset_type) {
         Ok(datasets::DataType::Dataset) => "SELECT dataset_url FROM datasets WHERE id = $1",
         Ok(datasets::DataType::DataFrame) => {
@@ -81,8 +104,15 @@ pub fn apply_transformations(
     dataset_id: Uuid,
     mut df: DataFrame,
     transformations: Vec<Value>,
+    dataset_type: &str,
+    dataset_metadata: Option<Dataset>,
+    dataframe_metadata: Option<DataFrameModel>,
 ) -> Result<String, Box<dyn std::error::Error>> {
-    info!("Starting apply transformation: {}", dataset_id);
+    info!(
+        "Starting apply transformation: {}, dataframe_size: {}",
+        dataset_id,
+        df.height()
+    );
 
     for transformation in transformations {
         let transform_type = transformation["type"].as_str().ok_or_else(|| {
@@ -91,7 +121,13 @@ pub fn apply_transformations(
 
         match transform_type {
             "filter" => {
-                df = apply_filter_transformation(df, &transformation)?;
+                df = apply_filter_transformation(
+                    df,
+                    &transformation,
+                    dataset_type,
+                    &dataset_metadata,
+                    &dataframe_metadata,
+                )?;
             }
             "aggregate" => {
                 df = apply_aggregate_transformation(df, &transformation)?;
@@ -106,17 +142,26 @@ pub fn apply_transformations(
         }
     }
 
+    let result_df = df.clone();
+
     // Save DataFrame as a Parquet file
     let file_path = format!("/tmp/{}.parquet", dataset_id);
     save_as_parquet(df, &file_path)?;
 
-    info!("Successfully applied transformations: {}", dataset_id);
+    info!(
+        "Successfully applied transformations: {}, dataframe_size: {}",
+        dataset_id,
+        result_df.height()
+    );
     Ok(file_path)
 }
 
 fn apply_filter_transformation(
     mut df: DataFrame,
     transformation: &Value,
+    dataset_type: &str,
+    dataset_metadata: &Option<Dataset>,
+    dataframe_metadata: &Option<DataFrameModel>,
 ) -> Result<DataFrame, Box<dyn std::error::Error>> {
     let column = transformation["params"]["column"].as_str().ok_or_else(|| {
         Box::<dyn std::error::Error>::from("Missing 'column' in filter transformation")
@@ -134,14 +179,17 @@ fn apply_filter_transformation(
         DataType::Utf8 => {
             df = filter_string_column(df, column, value, operation)?;
         }
-        DataType::Int64 | DataType::Float64 => {
+        DataType::Int64 | DataType::Float64 | DataType::Float32 | DataType::Int32 => {
             df = filter_numeric_column(df, column, value, operation)?;
         }
         DataType::Date => {
             df = filter_date_column(df, column, value, operation)?;
         }
         _ => {
-            return Err(Box::from("Unsupported column type for filtering"));
+            return Err(Box::from(format!(
+                "Unsupported column type for filtering {}",
+                column_series.dtype()
+            )));
         }
     }
 
@@ -213,40 +261,43 @@ fn filter_numeric_column(
             column_data
                 .into_iter()
                 .map(|opt| match operation {
-                    "Is equal to" => {
-                        // Ensure value_parsed is of type i64
-                        opt.map(|v| v == value_parsed as i64).unwrap_or(false)
-                    }
-                    "Is not equal to" => {
-                        // Ensure value_parsed is of type i64
-                        opt.map(|v| v != value_parsed as i64).unwrap_or(false)
-                    }
+                    "Is equal to" => opt.map(|v| v == value_parsed as i64).unwrap_or(false),
+                    "Is not equal to" => opt.map(|v| v != value_parsed as i64).unwrap_or(false),
                     "Is null" => opt.is_none(),
                     "Is not null" => opt.is_some(),
-                    "Greater than" => {
-                        // Ensure value_parsed is of type i64
-                        opt.map(|v| v > value_parsed as i64).unwrap_or(false)
-                    }
+                    "Greater than" => opt.map(|v| v > value_parsed as i64).unwrap_or(false),
                     "Greater than or equal to" => {
-                        // Ensure value_parsed is of type i64
                         opt.map(|v| v >= value_parsed as i64).unwrap_or(false)
                     }
-                    "Less than" => {
-                        // Ensure value_parsed is of type i64
-                        opt.map(|v| v < value_parsed as i64).unwrap_or(false)
-                    }
+                    "Less than" => opt.map(|v| v < value_parsed as i64).unwrap_or(false),
                     "Less than or equal to" => {
-                        // Ensure value_parsed is of type i64
                         opt.map(|v| v <= value_parsed as i64).unwrap_or(false)
                     }
-                    "Is one of" => {
-                        // Ensure value_parsed is of type i64
-                        opt.map(|v| v == value_parsed as i64).unwrap_or(false)
+                    "Is one of" => opt.map(|v| v == value_parsed as i64).unwrap_or(false),
+                    "Is not one of" => opt.map(|v| v != value_parsed as i64).unwrap_or(false),
+                    _ => false,
+                })
+                .collect::<BooleanChunked>()
+        }
+        DataType::Int32 => {
+            let column_data = column_series.i32()?;
+            column_data
+                .into_iter()
+                .map(|opt| match operation {
+                    "Is equal to" => opt.map(|v| v == value_parsed as i32).unwrap_or(false),
+                    "Is not equal to" => opt.map(|v| v != value_parsed as i32).unwrap_or(false),
+                    "Is null" => opt.is_none(),
+                    "Is not null" => opt.is_some(),
+                    "Greater than" => opt.map(|v| v > value_parsed as i32).unwrap_or(false),
+                    "Greater than or equal to" => {
+                        opt.map(|v| v >= value_parsed as i32).unwrap_or(false)
                     }
-                    "Is not one of" => {
-                        // Ensure value_parsed is of type i64
-                        opt.map(|v| v != value_parsed as i64).unwrap_or(false)
+                    "Less than" => opt.map(|v| v < value_parsed as i32).unwrap_or(false),
+                    "Less than or equal to" => {
+                        opt.map(|v| v <= value_parsed as i32).unwrap_or(false)
                     }
+                    "Is one of" => opt.map(|v| v == value_parsed as i32).unwrap_or(false),
+                    "Is not one of" => opt.map(|v| v != value_parsed as i32).unwrap_or(false),
                     _ => false,
                 })
                 .collect::<BooleanChunked>()
@@ -256,40 +307,43 @@ fn filter_numeric_column(
             column_data
                 .into_iter()
                 .map(|opt| match operation {
-                    "Is equal to" => {
-                        // Ensure value_parsed is of type f64
-                        opt.map(|v| v == value_parsed as f64).unwrap_or(false)
-                    }
-                    "Is not equal to" => {
-                        // Ensure value_parsed is of type f64
-                        opt.map(|v| v != value_parsed as f64).unwrap_or(false)
-                    }
+                    "Is equal to" => opt.map(|v| v == value_parsed as f64).unwrap_or(false),
+                    "Is not equal to" => opt.map(|v| v != value_parsed as f64).unwrap_or(false),
                     "Is null" => opt.is_none(),
                     "Is not null" => opt.is_some(),
-                    "Greater than" => {
-                        // Ensure value_parsed is of type f64
-                        opt.map(|v| v > value_parsed as f64).unwrap_or(false)
-                    }
+                    "Greater than" => opt.map(|v| v > value_parsed as f64).unwrap_or(false),
                     "Greater than or equal to" => {
-                        // Ensure value_parsed is of type f64
                         opt.map(|v| v >= value_parsed as f64).unwrap_or(false)
                     }
-                    "Less than" => {
-                        // Ensure value_parsed is of type f64
-                        opt.map(|v| v < value_parsed as f64).unwrap_or(false)
-                    }
+                    "Less than" => opt.map(|v| v < value_parsed as f64).unwrap_or(false),
                     "Less than or equal to" => {
-                        // Ensure value_parsed is of type f64
                         opt.map(|v| v <= value_parsed as f64).unwrap_or(false)
                     }
-                    "Is one of" => {
-                        // Ensure value_parsed is of type f64
-                        opt.map(|v| v == value_parsed as f64).unwrap_or(false)
+                    "Is one of" => opt.map(|v| v == value_parsed as f64).unwrap_or(false),
+                    "Is not one of" => opt.map(|v| v != value_parsed as f64).unwrap_or(false),
+                    _ => false,
+                })
+                .collect::<BooleanChunked>()
+        }
+        DataType::Float32 => {
+            let column_data = column_series.f32()?;
+            column_data
+                .into_iter()
+                .map(|opt| match operation {
+                    "Is equal to" => opt.map(|v| v == value_parsed as f32).unwrap_or(false),
+                    "Is not equal to" => opt.map(|v| v != value_parsed as f32).unwrap_or(false),
+                    "Is null" => opt.is_none(),
+                    "Is not null" => opt.is_some(),
+                    "Greater than" => opt.map(|v| v > value_parsed as f32).unwrap_or(false),
+                    "Greater than or equal to" => {
+                        opt.map(|v| v >= value_parsed as f32).unwrap_or(false)
                     }
-                    "Is not one of" => {
-                        // Ensure value_parsed is of type f64
-                        opt.map(|v| v != value_parsed as f64).unwrap_or(false)
+                    "Less than" => opt.map(|v| v < value_parsed as f32).unwrap_or(false),
+                    "Less than or equal to" => {
+                        opt.map(|v| v <= value_parsed as f32).unwrap_or(false)
                     }
+                    "Is one of" => opt.map(|v| v == value_parsed as f32).unwrap_or(false),
+                    "Is not one of" => opt.map(|v| v != value_parsed as f32).unwrap_or(false),
                     _ => false,
                 })
                 .collect::<BooleanChunked>()

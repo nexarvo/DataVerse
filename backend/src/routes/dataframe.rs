@@ -1,3 +1,6 @@
+use std::io::Cursor;
+
+use crate::disk_layer::file_handler::read_dataset;
 use crate::dto::dataframe::{DataFramePreview, GetDataFrameParams, PaginatedDataFrameResponse};
 use crate::repositories::dataframe::{get_dataframe_by_id, get_dataframes};
 use crate::services::dataframe_service::{
@@ -26,7 +29,7 @@ pub async fn get_dataframe(
     let page = params.page.unwrap_or(1);
     let page_size = params.page_size.unwrap_or(20);
 
-    // Step 1: Fetch the metadata from PostgreSQL (get the file URL)
+    // Step 1: Fetch the metadata from PostgreSQL
     let dataframe = get_dataframe_by_id(&pool, dataframe_id)
         .await
         .map_err(|e| {
@@ -34,39 +37,65 @@ pub async fn get_dataframe(
             actix_web::error::ErrorInternalServerError(format!("Failed to fetch metadata: {}", e))
         })?;
 
-    match dataframe {
-        Some(dataframe) => {
-            // Proceed with the valid dataframe
+    // Handle the case where no DataFrame was found
+    let dataframe = dataframe.ok_or_else(|| {
+        error!("DataFrame not found for ID: {}", dataframe_id);
+        actix_web::error::ErrorNotFound("DataFrame not found")
+    })?;
+
+    // Step 2: Attempt to read the dataset from disk
+    let dataframe_key = format!("dataframe-{}", dataframe_id);
+    let df = match read_dataset(&dataframe_key).await {
+        Ok(parquet_data) => {
+            // Read Parquet data from disk
+            ParquetReader::new(Cursor::new(parquet_data))
+                .finish()
+                .map_err(|e| {
+                    error!("Failed to read Parquet data: {}", e);
+                    actix_web::error::ErrorInternalServerError(format!(
+                        "Failed to read Parquet data: {}",
+                        e
+                    ))
+                })?
+        }
+        Err(_) => {
+            // Data not available on disk, download from Supabase
+            info!("Data not found on disk. Attempting to download from Supabase.");
             let file_path =
                 download_parquet_from_supabase(dataframe_id, &dataframe.dataframe_duckdb_reference)
-                    .await?;
-            // Step 3: Read Parquet file into Polars DataFrame
-            let df = match read_parquet_to_dataframe(&file_path) {
-                Ok(df) => df,
-                Err(e) => {
-                    eprintln!("Failed to read Parquet file: {}", e);
-                    return Err(e.into()); // or handle the error accordingly
-                }
-            };
+                    .await
+                    .map_err(|e| {
+                        error!("Failed to download Parquet file: {}", e);
+                        actix_web::error::ErrorInternalServerError(format!(
+                            "Failed to download Parquet file: {}",
+                            e
+                        ))
+                    })?;
 
-            // Step 4: Apply pagination to DataFrame
-            let start_row = ((page - 1) * page_size as u32) as usize;
-
-            // Step 5: Generate headers and preview (first few rows)
-            let preview = generate_dataframe_preview(&df, start_row, page_size as usize, page);
-
-            info!(
-                "Successfully get dataframe for query: {}",
-                params.dataframe_id
-            );
-            // Step 6: Return the headers and preview as JSON with pagination metadata
-            Ok(HttpResponse::Ok().json(preview))
+            // Read the downloaded Parquet file
+            read_parquet_to_dataframe(&file_path).map_err(|e| {
+                error!("Failed to read downloaded Parquet file: {}", e);
+                actix_web::error::ErrorInternalServerError(format!(
+                    "Failed to read downloaded Parquet file: {}",
+                    e
+                ))
+            })?
         }
-        None => {
-            // Handle the case where no DataFrame was found (i.e., the query returned `None`)
-            return Err(actix_web::error::ErrorNotFound("DataFrame not found"));
-        }
-    }
+    };
+
+    // Step 3: Apply pagination
+    let start_row = ((page - 1) * page_size as u32) as usize;
+
+    // Step 4: Generate headers and preview
+    let preview = generate_dataframe_preview(&df, start_row, page_size as usize, page);
+
+    info!(
+        "Successfully retrieved dataframe for query: {}",
+        params.dataframe_id
+    );
+
+    // Step 5: Return the headers and preview as JSON
+    Ok(HttpResponse::Ok().json(preview))
 }
 
 pub async fn get_dataframe_metadata(

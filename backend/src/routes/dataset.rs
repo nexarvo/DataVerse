@@ -1,5 +1,6 @@
 use crate::disk_layer::file_handler::write_dataset;
 use crate::repositories::dataset_repository;
+use crate::services::dataset_service::{convert_csv_to_parquet, generate_columns_metadata};
 use crate::utils::jwt::get_user_id_from_request;
 use crate::{models::datasets::Dataset, services::dataset_service::upload_to_supabase};
 use actix_multipart::Multipart;
@@ -66,6 +67,8 @@ pub async fn upload_file_route(
                 // Generate preview (entire dataset as JSON)
                 let preview = generate_preview(&file_data, &file_name)?;
 
+                // let column_metadata = generate_columns_metadata(&file_data, &file_name)?;
+
                 let dataset = dataset_repository::insert_new_dataset(
                     &pool,
                     file_name,
@@ -76,6 +79,7 @@ pub async fn upload_file_route(
                     None,
                     None,
                     preview,
+                    Some(serde_json::Value::Null),
                 )
                 .await
                 .map_err(|e| {
@@ -88,7 +92,8 @@ pub async fn upload_file_route(
 
                 // Store the dataset in the disk
                 if let Some(dataset_id) = dataset.id {
-                    write_dataset(&format!("dataset-{}", dataset_id), &file_data).await?;
+                    let parquet_data = convert_csv_to_parquet(&file_data)?;
+                    write_dataset(&format!("dataset-{}", dataset_id), &parquet_data).await?;
                 }
 
                 return Ok(HttpResponse::Ok().body(format!("File uploaded: {}", dataset_url)));

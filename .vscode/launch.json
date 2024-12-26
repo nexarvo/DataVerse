@@ -6,7 +6,7 @@
       "request": "launch",
       "name": "Debug Backend",
       "program": "${workspaceFolder}/backend/target/debug/backend",
-      "args": [],
+      "args": ["--port", "8081"],
       "cwd": "${workspaceFolder}",
       "env": {
         "DATABASE_URL": "postgres://usmanghani:password@localhost/dataverse",
@@ -14,10 +14,14 @@
         "SUPABASE_API_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB3am9ucmR5Z3d0eG9wZW90eHllIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczMjc1MjQxMywiZXhwIjoyMDQ4MzI4NDEzfQ.Qgx7wKqmKAhscSlyqAUw32qu1A7LA4hnoZv_-MCdDqo",
         "SUPABASE_FILE_BUCKET_NAME": "data_verse_file_bucket",
         "SUPABASE_DATAFRAME_BUCKET_NAME": "data_verse_dataframe_bucket",
-        "JWT_SECRET": "your-jwt-token"
+        "JWT_SECRET": "your-jwt-token",
+        "FILE_ENCRYPTION_KEY": "3XHG/U+9z/JVt3xL1i8dD+RjF8EvAP96BvIEqpQRuVs=",
+        "FILE_ENCRYPTION_NONCE": "kPWufMIHshVcJEzxTVaNMQ==",
+        "DATA_DIRECTORY_PATH": "${workspaceFolder}/backend/data",
+        "PORT": "8080"
       },
       "sourceLanguages": ["rust"],
-      "preLaunchTask": "Watch and Run",
+      // "preLaunchTask": "Watch and Run",
       "console": "integratedTerminal"
     }
   ]

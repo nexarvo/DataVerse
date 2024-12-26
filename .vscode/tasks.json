@@ -7,7 +7,23 @@
       "command": "cargo",
       "args": ["watch", "-x", "run"],
       "isBackground": true,
-      "problemMatcher": []
+      "problemMatcher": {
+        "owner": "rust",
+        "fileLocation": ["relative", "${workspaceFolder}"],
+        "pattern": [
+          {
+            "regexp": "^error\\[([a-zA-Z0-9_]+)\\]:\\s+(.*)$",
+            "severity": 1,
+            "message": 2
+          },
+          {
+            "regexp": "^(\\s+)-->\\s+(.*):(\\d+):(\\d+)",
+            "file": 2,
+            "line": 3,
+            "column": 4
+          }
+        ]
+      }
     }
   ]
 }

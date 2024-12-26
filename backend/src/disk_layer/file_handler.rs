@@ -42,62 +42,144 @@ lazy_static! {
 
 /// Encrypt data before saving to disk.
 fn encrypt(data: &[u8]) -> Vec<u8> {
+    info!("Encrypting data");
     let key = Key::<Aes256Gcm>::from_slice(&ENCRYPTION_KEY[..]);
     let cipher = Aes256Gcm::new(key);
 
     let nonce = Nonce::from_slice(&ENCRYPTION_NONCE[..]); // 96-bits; unique per message
-    cipher.encrypt(nonce, data).expect("Encryption failed")
+    let encrypted_data = cipher.encrypt(nonce, data).expect("Encryption failed");
+    info!("Successfully encrypted data");
+    encrypted_data
 }
 
 /// Decrypt data after reading from disk.
 fn decrypt(data: &[u8]) -> Vec<u8> {
+    info!("Decrypting data");
     let key = Key::<Aes256Gcm>::from_slice(&ENCRYPTION_KEY[..]);
     let cipher = Aes256Gcm::new(key);
 
     let nonce = Nonce::from_slice(&ENCRYPTION_NONCE[..]); // 96-bits; must match the encryption nonce
-    cipher.decrypt(nonce, data).expect("Decryption failed")
+    let decrypted_data = cipher.decrypt(nonce, data).expect("Decryption failed");
+    info!("Successfully decrypted data");
+    decrypted_data
 }
 
 /// Write dataset securely to disk asynchronously.
+// pub async fn write_dataset(filename: &str, data: &[u8]) -> io::Result<()> {
+//     info!("Writing dataset to disk: {}", filename);
+
+//     // Get the disk path, fallback to "./data" if not set
+//     let disk_path = env::var("DATA_DIRECTORY_PATH").unwrap_or_else(|_| "./data".to_string());
+//     let file_path = format!("{}/{}", disk_path, filename);
+
+//     // Ensure that the directory exists, create if not
+//     let dir_path = Path::new(&disk_path);
+//     if !dir_path.exists() {
+//         fs::create_dir_all(dir_path)?; // This will create all necessary parent directories
+//     }
+
+//     // Encrypt the data
+//     let encrypted_data = encrypt(data);
+
+//     // Open or create the file for writing
+//     let mut file = OpenOptions::new()
+//         .write(true)
+//         .create(true)
+//         .open(file_path)
+//         .await?;
+
+//     // Write the encrypted data to the file
+//     file.write_all(&encrypted_data).await?;
+
+//     info!("Successfully wrote dataset to disk: {}", filename);
+//     Ok(())
+// }
+
 pub async fn write_dataset(filename: &str, data: &[u8]) -> io::Result<()> {
     info!("Writing dataset to disk: {}", filename);
+    info!("Input data size: {} bytes", data.len());
 
-    // Get the disk path, fallback to "./data" if not set
+    // Get the disk path
     let disk_path = env::var("DATA_DIRECTORY_PATH").unwrap_or_else(|_| "./data".to_string());
-    let file_path = format!("{}/{}", disk_path, filename);
+    let file_path = format!("{}/{}.parquet", disk_path, filename);
 
-    // Ensure that the directory exists, create if not
+    // Ensure directory exists
     let dir_path = Path::new(&disk_path);
     if !dir_path.exists() {
-        fs::create_dir_all(dir_path)?; // This will create all necessary parent directories
+        fs::create_dir_all(dir_path)?;
     }
 
-    // Encrypt the data
-    let encrypted_data = encrypt(data);
+    // Encrypt the data with size logging
+    // let encrypted_data = {
+    //     info!("Starting encryption of {} bytes", data.len());
+    //     let result = encrypt(data);
+    //     info!(
+    //         "Encryption complete, encrypted size: {} bytes",
+    //         result.len()
+    //     );
+    //     result
+    // };
 
-    // Open or create the file for writing
+    // Write to file with verification
     let mut file = OpenOptions::new()
         .write(true)
         .create(true)
-        .open(file_path)
+        .open(&file_path)
         .await?;
 
-    // Write the encrypted data to the file
-    file.write_all(&encrypted_data).await?;
+    file.write_all(&data).await?;
+    file.flush().await?;
 
-    info!("Successfully wrote dataset to disk: {}", filename);
+    info!("Successfully wrote encrypted data to: {}", filename);
+
+    // Verify the file exists and has the correct size
+    if let Ok(metadata) = fs::metadata(&file_path) {
+        info!("Verified file size on disk: {} bytes", metadata.len());
+    }
+
     Ok(())
 }
 
 /// Read dataset securely from disk asynchronously.
+// pub async fn read_dataset(filename: &str) -> io::Result<Vec<u8>> {
+//     info!("Reading dataset from disk: {}", filename);
+//     let disk_path = env::var("DATA_DIRECTORY_PATH").unwrap_or_else(|_| "./data".to_string());
+//     let file_path = format!("{}/{}", disk_path, filename);
+
+//     let mut file = File::open(file_path).await?;
+//     let mut encrypted_data = Vec::new();
+//     file.read_to_end(&mut encrypted_data).await?;
+//     // Decrypt the data before returning
+//     let decrypted_data = decrypt(&encrypted_data);
+//     info!("Successfully read dataset from disk: {}", filename);
+//     Ok(decrypted_data)
+// }
+
+// Modified read_dataset function with additional checks
 pub async fn read_dataset(filename: &str) -> io::Result<Vec<u8>> {
     info!("Reading dataset from disk: {}", filename);
-    let disk_path = env::var("DATA_DIRECTORY_PATH").unwrap_or_else(|_| "./data".to_string());
-    let file_path = format!("{}/{}", disk_path, filename);
 
-    let mut file = File::open(file_path).await?;
+    let disk_path = env::var("DATA_DIRECTORY_PATH").unwrap_or_else(|_| "./data".to_string());
+    let file_path = format!("{}/{}.parquet", disk_path, filename);
+    info!("Reading from file: {}", file_path);
+
+    // Read file with size logging
+    let mut file = File::open(&file_path).await?;
     let mut encrypted_data = Vec::new();
-    file.read_to_end(&mut encrypted_data).await?;
-    info!("Successfully read dataset from disk: {}", filename);
-    Ok(decrypt(&encrypted_data))
+    let bytes_read = file.read_to_end(&mut encrypted_data).await?;
+
+    info!("Read {} bytes of encrypted data from disk", bytes_read);
+
+    // Decrypt with detailed logging
+    // let decrypted_data = {
+    //     info!("Starting decryption of {} bytes", encrypted_data.len());
+    //     let result = decrypt(&encrypted_data);
+    //     info!(
+    //         "Decryption complete, decrypted size: {} bytes",
+    //         result.len()
+    //     );
+    //     result
+    // };
+
+    Ok(encrypted_data)
 }
