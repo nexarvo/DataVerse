@@ -38,3 +38,9 @@ pub struct AddCellToPositionRequest {
     pub reference_cell_id: Option<Uuid>,
     pub cell_order: i32,
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct CellSQLInputsModal {
+    pub id: Uuid,
+    pub data_type: String,
+}

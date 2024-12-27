@@ -1,0 +1,1 @@
+ALTER TABLE cell ADD COLUMN inputs JSONB;

@@ -150,7 +150,7 @@ pub async fn apply_transformation(
         // Continue anyway as this is cleanup
     }
 
-    let dataframe = save_dataframe(&pool, dataframe_id, transformation.id, String::new())
+    let dataframe = save_dataframe(&pool, dataframe_id, Some(transformation.id), String::new())
         .await
         .map_err(|e| {
             error!("Failed to save dataframe: {}", e);
@@ -160,10 +160,11 @@ pub async fn apply_transformation(
     let cell = match datasets::DataType::from_str(input_data_type_str) {
         Ok(datasets::DataType::Dataset) => Cell::new(
             cell_id,
-            Some(dataframe.transformation_id),
+            dataframe.transformation_id,
             None,
             Some(transformation.dataset_id),
             Some(dataframe.id),
+            None,
             None,
             None,
             None,
@@ -172,10 +173,11 @@ pub async fn apply_transformation(
         ),
         Ok(datasets::DataType::DataFrame) => Cell::new(
             cell_id,
-            Some(dataframe.transformation_id),
+            dataframe.transformation_id,
             Some(transformation.dataset_id),
             None,
             Some(dataframe.id),
+            None,
             None,
             None,
             None,

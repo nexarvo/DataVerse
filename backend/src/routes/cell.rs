@@ -60,6 +60,7 @@ pub async fn create_cell(
         payload.name.clone(),
         None,
         None,
+        None,
     );
 
     let created_cell = cell_repository::create_cell(&pool, &new_cell)
@@ -86,6 +87,7 @@ pub async fn add_cell_at_position(
         payload.cell.cell_type.clone(),
         payload.cell.cell_order.clone(),
         payload.cell.name.clone(),
+        None,
         None,
         None,
     );

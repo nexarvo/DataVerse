@@ -120,6 +120,12 @@ pub async fn write_dataset(filename: &str, data: &[u8]) -> io::Result<()> {
     //     result
     // };
 
+    // Delete the existing file (if any) to ensure it's wiped clean
+    if Path::new(&file_path).exists() {
+        fs::remove_file(&file_path)?;
+        info!("Deleted existing file: {}", file_path);
+    }
+
     // Write to file with verification
     let mut file = OpenOptions::new()
         .write(true)

@@ -1,10 +1,7 @@
 use duckdb::Connection;
-use std::sync::Mutex;
-use lazy_static::lazy_static;
 
-// This is the global DuckDB connection available across the project
-lazy_static! {
-    pub static ref DUCKDB_CONN: Mutex<Connection> = Mutex::new(
-        Connection::open("dataverse_duckdb.db").expect("Failed to connect to DuckDB")
-    );
+pub fn get_duckdb_connection() -> Result<Connection, Box<dyn std::error::Error>> {
+    // Open a disk-backed database file
+    let conn = Connection::open("dataverse_duckdb.db")?;
+    Ok(conn)
 }

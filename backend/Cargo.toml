@@ -6,6 +6,9 @@ edition = "2021"
 [profile.dev]
 debug = true
 
+[watch]
+ignore = ["data/*", "dataverse_duckdb.db"]
+
 [build]
 rustflags = ["-C", "link-args=-L/usr/local/lib"]
 
@@ -44,3 +47,4 @@ aes-gcm = "0.10"
 base64 = "0.13.0"
 bytes = "1"           # For handling byte streams
 parquet = "54.0.0"
+tempfile = "3.6"

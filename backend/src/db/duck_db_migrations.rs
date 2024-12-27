@@ -1,10 +1,10 @@
 use log::info;
 
-use crate::db::duck_db_connection::DUCKDB_CONN;
+use crate::db::duck_db_connection::get_duckdb_connection;
 
 pub fn run_duckdb_migrations() {
     info!("Starting to run duckdb migrations");
-    let conn = DUCKDB_CONN.lock().unwrap();
+    let conn = get_duckdb_connection().expect("Failed to acquire DuckDB connection");
 
     // Create the datasets table
     conn.execute(
@@ -14,7 +14,7 @@ pub fn run_duckdb_migrations() {
             file_path TEXT NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );",
-        []
+        [],
     )
     .expect("Failed to run DuckDB migrations");
 
@@ -25,7 +25,7 @@ pub fn run_duckdb_migrations() {
             file_path TEXT NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );",
-        []
+        [],
     )
     .expect("Failed to run DuckDB migrations");
 

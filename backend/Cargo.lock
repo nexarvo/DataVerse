@@ -759,6 +759,7 @@ dependencies = [
  "serde_json",
  "sqlx",
  "supabase_rs",
+ "tempfile",
  "thiserror 1.0.69",
  "tokio",
  "tokio-macros 1.8.2",

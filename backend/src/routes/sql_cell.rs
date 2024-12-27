@@ -1,14 +1,16 @@
-use std::{fs, path::PathBuf};
-
 use actix_web::{web, HttpResponse};
+use log::{error, info};
 use sqlx::PgPool;
 
 use crate::{
-    dto::sql_cell::SQLQueryRequest,
-    repositories::{dataframe::get_dataframe_by_id, dataset_repository::get_dataset_by_id},
-    services::{
-        dataframe_service::download_parquet_from_supabase, dataset_service::download_dataset,
-        sql_cell_service::query_file_with_duckdb,
+    disk_layer::file_handler::write_dataset,
+    dto::{datasets::DataType, sql_cell::SQLQueryRequest},
+    repositories::{
+        cell_repository, dataframe::get_dataframes_by_ids, dataset_repository::get_datasets_by_ids,
+    },
+    services::sql_cell_service::{
+        load_inputs_datasets_dataframes_in_duckdb, run_query_with_duckdb,
+        un_load_inputs_datasets_dataframes_in_duckdb, update_metadata,
     },
 };
 
@@ -16,84 +18,103 @@ async fn sql_query_handler(
     pool: web::Data<PgPool>,
     req: web::Json<SQLQueryRequest>,
 ) -> Result<HttpResponse, actix_web::Error> {
+    info!("Starting to process SQL query");
     let cell_id = &req.cell_id;
-    let dataset_id = &req.dataset_id;
-    let is_dataset = &req.is_dataset;
+    let inputs = &req.inputs;
     let sql_query = &req.sql_query;
 
-    // Step 1: Download the file
-    let file_path = match is_dataset {
-        true => {
-            let dataset = get_dataset_by_id(&pool, *dataset_id).await.map_err(|e| {
-                actix_web::error::ErrorInternalServerError(format!(
-                    "Failed to retrieve dataset: {}",
-                    e
-                ))
-            })?;
+    // Get cell metadata from database
+    let cell = cell_repository::get_cell_metadata_by_id(&pool, *cell_id)
+        .await
+        .map_err(|err| {
+            error!("Failed to get cell: {}", err);
+            actix_web::error::ErrorInternalServerError("Failed to get cell")
+        })?;
 
-            // Check if the dataset is Some or None
-            let dataset_url = match dataset {
-                Some(ds) => ds.dataset_url, // Access dataset_url here
-                None => return Err(actix_web::error::ErrorNotFound("Dataset not found")), // Handle None case
-            };
+    if cell.is_none() {
+        return Ok(HttpResponse::NotFound().json("Cell not found"));
+    }
 
-            // Proceed with downloading the dataset
-            let dataset_path = download_dataset(&dataset_url).await.map_err(|e| {
-                actix_web::error::ErrorInternalServerError(format!(
-                    "Failed to download dataset: {}",
-                    e
-                ))
-            })?;
-            dataset_path
-        }
-        false => {
-            let dataframe = get_dataframe_by_id(&pool, *dataset_id).await.map_err(|e| {
-                actix_web::error::ErrorInternalServerError(format!(
-                    "Failed to retrieve dataframe: {}",
-                    e
-                ))
-            })?;
-            let dataframe_reference = match dataframe {
-                Some(df) => df.dataframe_duckdb_reference,
-                None => return Err(actix_web::error::ErrorNotFound("Dataframe not found")),
-            };
-            let result = download_parquet_from_supabase(*dataset_id, &dataframe_reference)
-                .await
-                .map_err(|e| {
-                    actix_web::error::ErrorInternalServerError(format!(
-                        "Failed to download dataframe: {}",
-                        e
-                    ))
-                })?;
-
-            PathBuf::from(result)
-        }
-    };
-
-    // Step 2: Execute SQL query using DuckDB
-    let dataframe_id = match query_file_with_duckdb(
+    // Get input dataset/dataframe from database
+    let input_datasets = get_datasets_by_ids(
         &pool,
-        *cell_id,
-        *dataset_id,
-        *is_dataset,
-        &file_path,
-        sql_query,
+        inputs
+            .iter()
+            .filter(|input| input.data_type == DataType::Dataset.to_string())
+            .map(|input| input.id)
+            .collect(),
     )
     .await
-    {
-        Ok(results) => results,
-        Err(err) => {
-            // Cleanup temp file before returning error
-            let _ = fs::remove_file(&file_path);
-            return Ok(HttpResponse::InternalServerError()
-                .json(format!("Query execution failed: {}", err)));
-        }
-    };
+    .map_err(|err| {
+        error!("Failed to get input datasets: {}", err);
+        actix_web::error::ErrorInternalServerError("Failed to get input datasets")
+    })?;
 
-    // Step 3: Cleanup temp file
-    let _ = fs::remove_file(&file_path);
+    let input_dataframes = get_dataframes_by_ids(
+        &pool,
+        inputs
+            .iter()
+            .filter(|input| input.data_type == DataType::DataFrame.to_string())
+            .map(|input| input.id)
+            .collect(),
+    )
+    .await
+    .map_err(|err| {
+        error!("Failed to get input dataframes: {}", err);
+        actix_web::error::ErrorInternalServerError("Failed to get input dataframes")
+    })?;
 
-    // Step 4: Return results
+    //Step 1: Load all the datasets/dataframes in duckdb
+    load_inputs_datasets_dataframes_in_duckdb(
+        cell_id.clone(),
+        input_datasets.clone(),
+        input_dataframes.clone(),
+    )
+    .await
+    .map_err(|err| {
+        error!(
+            "Failed to load input datasets/dataframes in duckdb: {}",
+            err
+        );
+        actix_web::error::ErrorInternalServerError(
+            "Failed to load input datasets/dataframes in duckdb",
+        )
+    })?;
+
+    //Step 2: Execute SQL query using DuckDB
+    let result = run_query_with_duckdb(cell_id.clone(), sql_query).await?;
+
+    //Step 3: Unload all the datasets/dataframes from duckdb
+    un_load_inputs_datasets_dataframes_in_duckdb(cell_id.clone(), input_datasets, input_dataframes)
+        .await
+        .map_err(|err| {
+            error!(
+                "Failed to unload input datasets/dataframes from duckdb: {}",
+                err
+            );
+            actix_web::error::ErrorInternalServerError(
+                "Failed to unload input datasets/dataframes from duckdb",
+            )
+        })?;
+
+    //Step 4: Update the metadata in database
+    let dataframe_id = update_metadata(&pool, *cell_id, Some(cell.unwrap()), (*inputs).clone())
+        .await
+        .map_err(|err| {
+            error!("Failed to update metadata: {}", err);
+            actix_web::error::ErrorInternalServerError("Failed to update metadata")
+        })?;
+
+    //Step 5: Store result in new/existing dataframe in disk
+    write_dataset(&format!("dataframe-{}", dataframe_id), &result)
+        .await
+        .map_err(|err| {
+            error!("Failed to write result to disk: {}", err);
+            actix_web::error::ErrorInternalServerError("Failed to write result to disk")
+        })?;
+
+    info!("Successfully processed SQL query");
+    //Step 6: Return result dataframe_id
     Ok(HttpResponse::Ok().json(dataframe_id))
 }
 

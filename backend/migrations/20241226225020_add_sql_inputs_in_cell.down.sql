@@ -1,0 +1,1 @@
+ALTER TABLE cell DROP COLUMN inputs;

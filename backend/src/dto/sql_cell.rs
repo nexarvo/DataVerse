@@ -1,11 +1,12 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Deserialize)]
+use super::cell::CellSQLInputsModal;
+
+#[derive(Deserialize, Clone)]
 pub struct SQLQueryRequest {
     pub cell_id: Uuid,
-    pub dataset_id: Uuid,
-    pub is_dataset: bool,
+    pub inputs: Vec<CellSQLInputsModal>,
     pub sql_query: String,
 }
 

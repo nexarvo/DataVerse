@@ -1,10 +1,11 @@
 use chrono::NaiveDateTime;
+use serde_json::Value;
 use sqlx::{Error, PgPool};
 use uuid::Uuid;
 
 use crate::{
     dto::{
-        cell::CellDTO, dataframe::DataframeMetadataDTO, datasets::DatasetMetadataDTO,
+        cell::{CellDTO, CellSQLInputsModal}, dataframe::DataframeMetadataDTO, datasets::DatasetMetadataDTO,
         transformation::TransformationDTO,
     },
     models::cell::Cell,
@@ -382,6 +383,7 @@ pub async fn get_cell_metadata_by_id(
             c.input_dataset_id,
             c.result_dataframe_id,
             c.first_transformation_id,
+            c.inputs,
             c.created_at,
             c.created_by,
             c.updated_at,
@@ -415,6 +417,9 @@ pub async fn get_cell_metadata_by_id(
         updated_by: cell_row.updated_by,
         first_transformation_id: cell_row.first_transformation_id,
         cell_order: cell_row.cell_order,
+        inputs: cell_row.inputs.map(|json_value| {
+            serde_json::from_value(json_value).unwrap_or_else(|_| None)
+        }).flatten(),
     };
 
     Ok(Some(cell)) // Return the Cell wrapped in Some
@@ -427,15 +432,15 @@ pub async fn create_cell(pool: &PgPool, cell: &Cell) -> Result<Cell, Error> {
         r#"
         INSERT INTO cell (
             id, name, first_transformation_id, input_dataframe_id, 
-            input_dataset_id, result_dataframe_id, cell_type, cell_order, 
+            input_dataset_id, result_dataframe_id, cell_type, cell_order, inputs, 
             created_at, created_by, updated_at, updated_by
         ) 
         VALUES (
-            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
+            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
         )
         RETURNING 
             id, name, first_transformation_id, input_dataframe_id, 
-            input_dataset_id, result_dataframe_id, cell_type, cell_order,
+            input_dataset_id, result_dataframe_id, cell_type, cell_order, inputs,
             created_at, created_by, updated_at, updated_by
         "#,
         cell.id,
@@ -446,6 +451,7 @@ pub async fn create_cell(pool: &PgPool, cell: &Cell) -> Result<Cell, Error> {
         cell.result_dataframe_id,
         cell.cell_type,
         cell.cell_order,
+        cell.inputs,
         cell.created_at,
         cell.created_by,
         cell.updated_at,
@@ -464,7 +470,7 @@ pub async fn add_cell_at_position(
     new_cell: Cell,                  // The new cell to be added
 ) -> Result<Cell, sqlx::Error> {
     // Fetch all cells and sort by cell_order to determine position
-    let cells: Vec<Cell> = sqlx::query_as!(Cell, "SELECT * FROM cell ORDER BY cell_order")
+    let cells: Vec<Cell> = sqlx::query_as::<_, Cell>("SELECT * FROM cell ORDER BY cell_order")
         .fetch_all(pool)
         .await?;
 
@@ -513,9 +519,10 @@ pub async fn add_cell_at_position(
     // Insert the new cell at the correct order and return it as a `Cell` type
     let inserted_cell: Cell = sqlx::query_as!(
         Cell, 
-        "INSERT INTO cell (id, name, input_dataframe_id, input_dataset_id, cell_type, cell_order, first_transformation_id, result_dataframe_id, created_at, created_by, updated_at, updated_by)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) 
-         RETURNING id, name, input_dataframe_id, input_dataset_id, cell_type, cell_order, first_transformation_id, result_dataframe_id, created_at, created_by, updated_at, updated_by",
+        "INSERT INTO cell (id, name, input_dataframe_id, input_dataset_id, cell_type, cell_order, first_transformation_id, result_dataframe_id, created_at, created_by, updated_at, updated_by
+        , inputs)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) 
+         RETURNING id, name, input_dataframe_id, input_dataset_id, cell_type, cell_order, first_transformation_id, result_dataframe_id, created_at, created_by, updated_at, updated_by, inputs",
         new_cell.id,
         new_cell.name,
         new_cell.input_dataframe_id,
@@ -527,7 +534,8 @@ pub async fn add_cell_at_position(
         Option::<NaiveDateTime>::None, // created_at
         Option::<Uuid>::None, // created_by
         Option::<NaiveDateTime>::None, // updated_at
-        Option::<Uuid>::None  // updated_by
+        Option::<Uuid>::None,  // updated_by
+        Option::<serde_json::Value>::None // inputs
     )
     .fetch_one(pool)
     .await?;

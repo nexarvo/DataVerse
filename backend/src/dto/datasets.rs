@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{fmt, str::FromStr};
 
 use chrono::{NaiveDateTime, Utc};
 use uuid::Uuid;
@@ -21,6 +21,16 @@ pub struct DatasetMetadataDTO {
 pub enum DataType {
     Dataset,
     DataFrame,
+}
+
+impl fmt::Display for DataType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            DataType::Dataset => write!(f, "dataset"),
+
+            DataType::DataFrame => write!(f, "dataframe"),
+        }
+    }
 }
 
 impl FromStr for DataType {
