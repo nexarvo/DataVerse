@@ -39,4 +39,15 @@ export type GenerateChartParam = {
   aggregation: string;
 };
 
+export type QuerySQLInputs = {
+  id: string;
+  data_type: string;
+};
+
+export type QuerySQLParam = {
+  cell_id: string;
+  sql_query: string;
+  inputs: QuerySQLInputs[];
+};
+
 export default ApplyTransformationApiType;

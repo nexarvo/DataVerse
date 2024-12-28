@@ -1,7 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import axios from 'axios';
 import { CellState } from '../app/slices/cellSlice';
-import { AddCellToPositionParam, CreateCellParam } from '../utils/apiTypes';
+import {
+  AddCellToPositionParam,
+  CreateCellParam,
+  QuerySQLParam,
+} from '../utils/apiTypes';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -62,6 +66,20 @@ export const addCellToPosition = async (params: AddCellToPositionParam) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     throw new Error(error.response?.data?.message || 'Error adding cell');
+  }
+};
+
+export const querySQL = async (params: QuerySQLParam) => {
+  try {
+    const response = await axios.post(`${API_URL}/sql/run`, params, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    return response.data;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || 'Error querying SQL');
   }
 };
 

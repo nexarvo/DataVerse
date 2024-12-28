@@ -19,9 +19,11 @@ import CellOptionsComponent from '../CellOptionsComponent';
 import CellTableComponent from '../CellTableComponent';
 import EChartComponent from './EChartComponent';
 import ChartCellInputBar from './ChartCellInputBar';
-import { GenerateChartParam } from '../../utils/apiTypes';
+import { GenerateChartParam, QuerySQLParam } from '../../utils/apiTypes';
 import { generateChart } from '../../services/chartService';
 import SQLEditor from './SQLEditor';
+import { Button } from '@headlessui/react';
+import { querySQL } from '../../services/cellService';
 
 interface SQLCellComponentProps {
   datasetsList: any[];
@@ -38,12 +40,7 @@ const SQLCellComponent: React.FC<SQLCellComponentProps> = ({
 }) => {
   const dispatch = useDispatch();
 
-  const [sqlQuery, setSqlQuery] = useState('');
-
-  const handleRunQuery = () => {
-    console.log('Running SQL query:', sqlQuery);
-    // Add the API call logic here
-  };
+  const [sqlQuery, setSqlQuery] = useState<QuerySQLParam>();
 
   let [chartData, setChartData] = useState<any>(null);
   let [selectedChartInput, setSelectedChartInput] =
@@ -95,6 +92,31 @@ const SQLCellComponent: React.FC<SQLCellComponentProps> = ({
       setCellViewDataset({ cellId: cellMetadata.id, viewDataset: dataset }),
     );
     notifyDatasetChange(cellMetadata.id);
+  };
+
+  const handleRunQuery = async () => {
+    try {
+      if (sqlQuery) {
+        sqlQuery.cell_id = cellMetadata.id;
+        const dataframeId = await querySQL(sqlQuery);
+        // For a given cell we will create dataframe only once so for further queries
+        // selectedDatasetId will remain same so we need to manually call fetch
+        if (selectedDatasetId) {
+          fetchViewData();
+        } else {
+          dispatch(
+            setCellSelectedDatasetId({
+              cellId: cellMetadata.id,
+              selectedDatasetId: `dataframe-${dataframeId}`,
+            }),
+          );
+        }
+      } else {
+        console.error('SQL query is undefined');
+      }
+    } catch (error) {
+      console.error('Error running SQL query:', error);
+    }
   };
 
   const fetchDataset = async (datasetId: string) => {
@@ -225,59 +247,31 @@ const SQLCellComponent: React.FC<SQLCellComponentProps> = ({
           </span>
         )}
       </div>
-      <div className='flex ml-2 mt-1'>
-        {/* Dropdown to select dataset */}
-        <select
-          className='bg-gray-700 text-white rounded-sm mb-4 w-20 h-5 text-green-300 bg-green-500/[.2] mr-4'
-          onChange={handleDatasetChange}
-          value={selectedDatasetId || ''}
+      <div className='flex justify-end items-center mr-2'>
+        <span className='text-xs mr-2 text-text-secondary font-light'>
+          2.5s
+        </span>
+        <button
+          className='px-2 py-0.5 bg-green-glass border border-green-800 text-green-300 shadow-md backdrop-blur-md rounded-sm hover:bg-green-hover transition'
+          onClick={handleRunQuery}
         >
-          {/* Group for Dataframe Metadata */}
-          {dataframeMetadataList.length > 0 ? (
-            <optgroup label='DATAFRAMES'>
-              {dataframeMetadataList?.map((metadata: any) => (
-                <option
-                  key={`dataframe-${metadata.id}`}
-                  value={`dataframe-${metadata.id}`}
-                  className='text-blue-200'
-                >
-                  {metadata.name}
-                </option>
-              ))}
-            </optgroup>
-          ) : null}
-
-          {/* Group for Datasets */}
-          <optgroup label='DATASETS'>
-            {datasetsList.map((dataset) => (
-              <option
-                key={`dataset-${dataset.id}`}
-                value={`dataset-${dataset.id}`}
-                className='text-green-200'
-              >
-                {dataset.file_name}
-              </option>
-            ))}
-          </optgroup>
-        </select>
-        {/* Quick filter Option */}
-        <div className='max-w4xl'>
-          <QuickFilter
-            cellId={cellMetadata.id}
-            dataset_id={getDataSetIdToApplyFilter()[0]}
-            colums={viewDataset?.latest_preview?.headers}
-            data={viewDataset?.latest_preview?.preview}
-            handleDatasetChange={handleDataChange}
-            initialFilters={cellMetadata.input_dataframe?.transformations}
-            dataType={getDataSetIdToApplyFilter()[1]}
-            inputDataType={getInputDataType()}
-          />
-        </div>
+          <div className='flex items-center'>
+            <span className='text-xs'>Run</span>
+          </div>
+        </button>
       </div>
-      <hr className='border-t border-fourth w-full' />
       <div className='flex'>
-        <SQLEditor value={sqlQuery} onChange={setSqlQuery} />
+        <SQLEditor
+          setQuery={setSqlQuery}
+          datasetsList={datasetsList}
+          dataframeMetadataList={dataframeMetadataList}
+        />
       </div>
+      {/* Table */}
+      <CellTableComponent
+        headers={viewDataset?.latest_preview?.headers}
+        data={viewDataset?.latest_preview?.preview}
+      />
     </div>
   );
 };
